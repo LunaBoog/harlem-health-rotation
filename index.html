@@ -1,0 +1,647 @@
+<div id="phr-game" style="font-family:var(--font-sans);max-width:680px;margin:0 auto;color:var(--color-text-primary)">
+<h2 class="sr-only">Public health teaching RPG: walk a clinic and East Harlem neighborhood, solve seven case scenarios, and collect public health principles in a reviewable field notebook.</h2>
+
+<style>
+#phr-game button{ transition:transform .07s ease, filter .12s ease, box-shadow .14s ease; }
+#phr-game button:hover:not(:disabled){ filter:brightness(1.16); }
+#phr-game button:active:not(:disabled){ transform:translateY(1px) scale(.985); }
+#phr-game button:focus-visible{ outline:2px solid #9FE1CB; outline-offset:2px; }
+#phr-game button:disabled{ cursor:not-allowed; }
+#phr-game .phr-card{ animation:phr-pop .22s cubic-bezier(.2,.8,.2,1) both; }
+#phr-game .phr-poi{ position:relative; }
+#phr-game .phr-poi:hover:not(:disabled){ border-color:#9FE1CB !important; }
+#phr-game .phr-scroll{ max-height:46vh; overflow-y:auto; overflow-x:hidden; padding-right:6px; }
+#phr-game .phr-scroll::-webkit-scrollbar{ width:9px; }
+#phr-game .phr-scroll::-webkit-scrollbar-track{ background:#0a0a08; border-radius:5px; }
+#phr-game .phr-scroll::-webkit-scrollbar-thumb{ background:#3C3489; border-radius:5px; border:1px solid #7F77DD; }
+#phr-game .phr-scroll::-webkit-scrollbar-thumb:hover{ background:#534AB7; }
+#phr-game #game-wrap::after{ content:""; position:absolute; inset:0; pointer-events:none; border-radius:12px; background:repeating-linear-gradient(0deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(0,0,0,.05) 3px, rgba(0,0,0,0) 4px); mix-blend-mode:multiply; z-index:6; }
+#phr-game #start-btn{ animation:phr-breathe 2.6s ease-in-out infinite; }
+#phr-game #progress-track{ height:5px; background:#1a1a18; border:1px solid #2C2C2A; border-radius:4px; margin:0 0 8px; overflow:hidden; }
+#phr-game #progress-fill{ height:100%; width:0%; background:linear-gradient(90deg,#0F6E56,#1D9E75 60%,#9FE1CB); border-radius:4px; transition:width .55s cubic-bezier(.2,.8,.2,1); box-shadow:0 0 8px rgba(159,225,203,.55); }
+#phr-game #mute-btn:hover{ filter:brightness(1.2); }
+@keyframes phr-pop{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:translateY(0); } }
+@keyframes phr-breathe{ 0%,100%{ box-shadow:0 0 0 0 rgba(252,222,90,0); } 50%{ box-shadow:0 0 16px 2px rgba(252,222,90,.5); } }
+@media (prefers-reduced-motion: reduce){
+  #phr-game .phr-card, #phr-game #start-btn{ animation:none; }
+  #phr-game #game-wrap::after{ display:none; }
+  #phr-game button{ transition:none; }
+}
+</style>
+
+<div id="hud" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:linear-gradient(180deg,#2C2C2A 0%,#1a1a18 100%);color:#FCDE5A;border-radius:8px;margin-bottom:8px;font-size:12px;font-family:monospace;border:1px solid #5F5E5A">
+  <div style="display:flex;align-items:center;gap:8px;min-width:0"><span style="color:#9FE1CB">LOC</span> <span id="loc-name" style="font-weight:500;color:#FFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">East Harlem Community Health</span></div>
+  <button id="notes-btn" style="background:#3C3489;color:#FCDE5A;border:1px solid #7F77DD;padding:5px 10px;border-radius:4px;font-family:monospace;font-size:11px;cursor:pointer;white-space:nowrap">FIELD NOTES [<span id="notes-count">0</span>/7]</button>
+  <div style="display:flex;align-items:center;gap:6px"><span style="color:#9FE1CB">SOLVED</span> <span id="solved" style="color:#FFF;font-weight:500">0</span><span style="color:#888780">/7</span></div>
+</div>
+
+<div id="progress-track"><div id="progress-fill"></div></div>
+
+<div id="hint" style="font-size:11px;color:var(--color-text-secondary);margin-bottom:6px;text-align:center;font-family:monospace">[WASD/arrows] walk &nbsp; [space/E] talk &nbsp; [N] notes &nbsp;·&nbsp; <span style="color:#EF9F27">!</span> case &nbsp; <span style="color:#378ADD">?</span> info &nbsp; <span style="color:#1D9E75">&check;</span> done</div>
+
+<div id="game-wrap" style="position:relative;width:100%;background:#0a0a08;border-radius:12px;overflow:hidden;border:2px solid #2C2C2A;box-shadow:inset 0 0 24px rgba(0,0,0,0.5)">
+  <canvas id="game" width="640" height="384" style="display:block;width:100%;height:auto;image-rendering:pixelated"></canvas>
+
+  <button id="mute-btn" title="Toggle sound" aria-label="Toggle sound" style="position:absolute;top:8px;right:8px;z-index:7;background:rgba(26,26,24,0.82);color:#FCDE5A;border:1px solid #5F5E5A;padding:5px 8px;border-radius:6px;font-size:11px;cursor:pointer;font-family:monospace;line-height:1">&#9834; ON</button>
+
+  <div id="loc-toast" style="display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.92);color:#FCDE5A;padding:16px 28px;border-radius:6px;font-size:14px;font-family:monospace;border:2px solid #FCDE5A;letter-spacing:1px;text-align:center;min-width:260px"></div>
+
+  <div id="title-screen" style="position:absolute;inset:0;background:rgba(10,10,8,0.82);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-family:monospace;padding:20px">
+    <div style="color:#9FE1CB;font-size:11px;letter-spacing:3px;margin-bottom:10px">CUNY SPH · STUDY COMPANION</div>
+    <div style="color:#FCDE5A;font-size:26px;font-weight:500;letter-spacing:1px;text-shadow:3px 3px 0 #993C1D;line-height:1.2">THE HARLEM<br>HEALTH ROTATION</div>
+    <div style="color:#C2C0B6;font-size:12px;margin-top:14px;max-width:380px;line-height:1.6">Walk the clinic and the neighborhood. Talk to the people who need help. Diagnose, decide, and learn the principle behind every call.</div>
+    <button id="start-btn" style="margin-top:22px;background:#3C3489;color:#FCDE5A;border:2px solid #FCDE5A;padding:10px 24px;border-radius:5px;font-family:monospace;font-size:14px;cursor:pointer;letter-spacing:1px">&#9654; PRESS SPACE TO BEGIN</button>
+    <div id="continue-line" style="color:#888780;font-size:11px;margin-top:12px"></div>
+  </div>
+
+  <div id="touch-controls" style="display:none;justify-content:center;gap:8px;padding:8px;background:#1a1a18">
+    <div style="display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(3,44px);gap:4px">
+      <div></div>
+      <button data-dir="up" style="padding:0;background:#2C2C2A;color:#FCDE5A;border:1px solid #5F5E5A;border-radius:4px">&uarr;</button>
+      <div></div>
+      <button data-dir="left" style="padding:0;background:#2C2C2A;color:#FCDE5A;border:1px solid #5F5E5A;border-radius:4px">&larr;</button>
+      <button data-dir="act" style="padding:0;font-size:11px;background:#3C3489;color:#FCDE5A;border:1px solid #7F77DD;border-radius:4px">A</button>
+      <button data-dir="right" style="padding:0;background:#2C2C2A;color:#FCDE5A;border:1px solid #5F5E5A;border-radius:4px">&rarr;</button>
+      <div></div>
+      <button data-dir="down" style="padding:0;background:#2C2C2A;color:#FCDE5A;border:1px solid #5F5E5A;border-radius:4px">&darr;</button>
+      <div></div>
+    </div>
+  </div>
+</div>
+
+<div id="panel" style="display:none;margin-top:12px"></div>
+<div id="debrief" style="display:none;margin-top:12px"></div>
+<div id="menu" style="display:none;margin-top:12px"></div>
+<div id="complete" style="display:none;margin-top:12px"></div>
+
+</div>
+
+<script>
+(function(){
+
+/* ============================================================
+   ART CONFIG  --  DROP YOUR GENERATED SPRITES HERE
+   ------------------------------------------------------------
+   Leave blank => game uses built-in placeholder pixel art.
+   Fill in a path => that image is used instead. Works when you
+   run locally (files in it-game/assets/...). Missing files just
+   fall back to placeholders, so partial art is fine.
+
+   TILES (32x32 each), keyed by internal tile code:
+     '.'=clinic floor  e=exam floor  b=office floor
+     h=school floor  gy=gym floor  cc=center floor
+     W=wall  p=sidewalk  r=road  s=road(top)  g=grass
+     X/Xs/Xc=door tiles
+   SPRITES, keyed by character id, each {down,up,left,right}
+     (any direction optional; 'down' used as fallback).
+     ids: player, marisol, parent, intake_worker, director,
+          staff, kid, teen, senior
+   PORTRAITS (square, ~96x96), keyed by character id -> path.
+   ============================================================ */
+const ART = {
+  tiles: {
+    // '.':'assets/tile/tile_floor_clinic.png',
+    // 'W':'assets/tile/tile_wall.png',
+    // 'g':'assets/tile/tile_grass.png',
+  },
+  sprites: {
+    // player:        { down:'assets/player/player_generic_down.png', up:'assets/player/player_generic_up.png', left:'assets/player/player_generic_left.png', right:'assets/player/player_generic_right.png' },
+    // marisol:       { down:'assets/npc/npc_marisol.png' },
+    // parent:        { down:'assets/npc/npc_okafor.png' },
+    // intake_worker: { down:'assets/npc/npc_sofia.png' },
+    // director:      { down:'assets/npc/npc_patel.png' },
+    // staff:         { down:'assets/npc/npc_diaz.png' },
+    // kid:           { down:'assets/npc/npc_jamal.png' },
+    // teen:          { down:'assets/npc/npc_riley.png' },
+    // senior:        { down:'assets/npc/npc_chen.png' },
+  },
+  portraits: {
+    // marisol:'assets/portrait/marisol.png',
+    // parent:'assets/portrait/okafor.png',
+    // intake_worker:'assets/portrait/sofia.png',
+    // director:'assets/portrait/patel.png',
+    // staff:'assets/portrait/diaz.png',
+    // kid:'assets/portrait/jamal.png',
+    // teen:'assets/portrait/riley.png',
+    // senior:'assets/portrait/chen.png',
+  }
+};
+
+const ASSETS = { tiles:{}, sprites:{}, portraits:{} };
+function loadImg(src, onload){
+  const im = new Image();
+  im.onload = () => { im._ready = true; onload && onload(); };
+  im.onerror = () => { im._ready = false; };
+  im.src = src;
+  return im;
+}
+(function preload(){
+  for(const code in ART.tiles){ ASSETS.tiles[code] = loadImg(ART.tiles[code], () => { mapCanvasCache = {}; }); }
+  for(const id in ART.sprites){
+    ASSETS.sprites[id] = {};
+    for(const dir in ART.sprites[id]){ ASSETS.sprites[id][dir] = loadImg(ART.sprites[id][dir]); }
+  }
+  for(const id in ART.portraits){ ASSETS.portraits[id] = loadImg(ART.portraits[id]); }
+})();
+
+/* ---------- reduced motion + lazy optional sound ---------- */
+const prefersReduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+let audioCtx=null, sndMuted=false;
+try{ sndMuted = localStorage.getItem('phr_muted_v6')==='1'; }catch(e){}
+function ensureAudio(){
+  if(!audioCtx){ try{ const AC=window.AudioContext||window.webkitAudioContext; if(AC) audioCtx=new AC(); }catch(e){ audioCtx=null; } }
+  if(audioCtx && audioCtx.state==='suspended'){ try{ audioCtx.resume(); }catch(e){} }
+  return audioCtx;
+}
+function tone(freq,dur,type,vol,when){
+  const ac=ensureAudio(); if(!ac||sndMuted) return;
+  const t0=ac.currentTime+(when||0);
+  const o=ac.createOscillator(), g=ac.createGain();
+  o.type=type||'sine'; o.frequency.setValueAtTime(freq,t0);
+  g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(vol||0.1,t0+0.012); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  o.connect(g); g.connect(ac.destination); o.start(t0); o.stop(t0+dur+0.03);
+}
+const SFX={
+  blip(){ tone(440,0.07,'square',0.045); },
+  open(){ tone(294,0.09,'triangle',0.06); tone(392,0.09,'triangle',0.045,0.04); },
+  note(){ tone(659,0.09,'triangle',0.07); tone(880,0.12,'triangle',0.05,0.07); },
+  right(){ [523,659,784,1047].forEach((f,i)=>tone(f,0.16,'triangle',0.08,i*0.075)); },
+  wrong(){ tone(196,0.2,'sawtooth',0.05); tone(146,0.24,'sawtooth',0.045,0.06); },
+  win(){ [523,659,784,1047,1319].forEach((f,i)=>tone(f,0.22,'triangle',0.085,i*0.11)); }
+};
+function setMuted(m){ sndMuted=m; try{ localStorage.setItem('phr_muted_v6', m?'1':'0'); }catch(e){} const b=document.getElementById('mute-btn'); if(b) b.innerHTML = m ? '&#9834; OFF' : '&#9834; ON'; }
+
+const TILE = 32, COLS = 20, ROWS = 12;
+const cvs = document.getElementById('game');
+const ctx = cvs.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+const PAL = {
+  wall:'#5F5E5A', wallShade:'#444441', wallLight:'#7A7873',
+  floor:'#E8E4D8', floorShade:'#D3D1C7', floorLight:'#F1EFE8',
+  examFloor:'#D8E4E8', examFloorShade:'#B8C4C8',
+  officeFloor:'#E4E0D0', officeFloorShade:'#C8C4B4',
+  schoolFloor:'#F0E8D0', schoolFloorShade:'#D8D0B8',
+  gymFloor:'#D0E8E0', gymFloorShade:'#A8C8C0', gymLine:'#85B7EB',
+  centerFloor:'#E8D8E0', centerFloorShade:'#C8B8C0',
+  street:'#5F5E5A', streetLight:'#7A7873', streetLine:'#FCDE5A',
+  sidewalk:'#C4BFB1', sidewalkShade:'#A09D90', sidewalkCrack:'#888780',
+  grass:'#639922', grassShade:'#3B6D11', grassTuft:'#97C459',
+  desk:'#A88862', deskShade:'#7A5F40', deskHighlight:'#C9A37A',
+  chair:'#7A6B5D', chairShade:'#5A4F44',
+  examTable:'#9FE1CB', examTableShade:'#5DCAA5', examPaper:'#F1EFE8',
+  table:'#9C7B5A', tableShade:'#73583E',
+  bookshelf:'#3B6D11', bookshelfShade:'#27500A', book:'#D85A30',
+  whiteboard:'#F1EFE8', whiteboardFrame:'#888780', whiteboardText:'#2C2C2A',
+  door:'#FCDE5A', doorShade:'#EF9F27', doorArrow:'#412402',
+  bodega:'#D85A30', bodegaShade:'#993C1D', bodegaSign:'#FCDE5A', bodegaWindow:'#85B7EB',
+  school:'#0F6E56', schoolShade:'#085041', schoolSign:'#E1F5EE', schoolWindow:'#B5D4F4',
+  bus:'#185FA5', busShade:'#0C447C', busSign:'#FCDE5A',
+  shadow:'rgba(0,0,0,0.25)'
+};
+const SPRITES = {
+  marisol:{body:'#D4537E',body2:'#993556',accent:'#FCDE5A',hair:'#2C2C2A',skin:'#C9926B'},
+  parent:{body:'#7F77DD',body2:'#534AB7',accent:'#F4C0D1',hair:'#1a1a18',skin:'#8A5A3A'},
+  intake_worker:{body:'#D85A30',body2:'#993C1D',accent:'#FCDE5A',hair:'#2C2C2A',skin:'#C9926B'},
+  director:{body:'#378ADD',body2:'#185FA5',accent:'#F1EFE8',hair:'#2C2C2A',skin:'#B08050'},
+  staff:{body:'#1D9E75',body2:'#0F6E56',accent:'#9FE1CB',hair:'#3B2A1A',skin:'#C9926B'},
+  kid:{body:'#BA7517',body2:'#854F0B',accent:'#FCDE5A',hair:'#412402',skin:'#8A5A3A'},
+  teen:{body:'#D4537E',body2:'#993556',accent:'#85B7EB',hair:'#BA7517',skin:'#E0B080'},
+  senior:{body:'#888780',body2:'#5F5E5A',accent:'#B5D4F4',hair:'#F1EFE8',skin:'#D8B088'},
+  player:{body:'#534AB7',body2:'#3C3489',accent:'#FCDE5A',hair:'#2C2C2A',skin:'#C9926B'}
+};
+
+function buildClinicMap(){
+  const m=[]; for(let y=0;y<ROWS;y++){const r=[];for(let x=0;x<COLS;x++)r.push('.');m.push(r);}
+  for(let y=0;y<ROWS;y++){m[y][0]='W';m[y][COLS-1]='W';}
+  for(let x=0;x<COLS;x++){m[0][x]='W';m[ROWS-1][x]='W';}
+  for(let y=1;y<=10;y++){ if(y!==4&&y!==9) m[y][10]='W'; }
+  for(let x=1;x<=9;x++){ if(x!==7) m[7][x]='W'; }
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){ if(m[y][x]==='W')continue; if(x<10&&y<7)m[y][x]='.'; else if(x<10&&y>7)m[y][x]='b'; else if(x>10)m[y][x]='e'; }
+  m[2][2]='D';m[2][3]='D';m[2][4]='D';m[2][5]='D'; m[1][2]='K';
+  m[3][2]='C';m[3][4]='C'; m[5][2]='c';m[5][3]='c'; m[5][5]='c';m[5][6]='c';
+  m[ROWS-1][4]='X';m[ROWS-1][5]='X';
+  m[3][13]='T';m[3][14]='T';m[3][15]='T';m[3][16]='T'; m[4][13]='C';m[4][16]='C'; m[7][15]='c';
+  m[8][13]='Tb';m[8][14]='Tb';m[8][15]='Tb'; m[10][13]='K2';
+  return m;
+}
+function buildStreetMap(){
+  const m=[]; for(let y=0;y<ROWS;y++){const r=[];for(let x=0;x<COLS;x++){ if(y<3)r.push('s'); else if(y<5)r.push('p'); else if(y<8)r.push('r'); else if(y<10)r.push('p'); else r.push('g'); }m.push(r);}
+  for(let x=2;x<7;x++){m[0][x]='B';m[1][x]='B';m[2][x]='B';}
+  for(let x=13;x<18;x++){m[0][x]='S';m[1][x]='S';m[2][x]='S';}
+  m[4][10]='Bus';m[4][11]='Bus'; m[0][9]='X';m[0][10]='X'; m[2][15]='Xs';m[2][16]='Xs'; m[ROWS-1][1]='Xc';m[ROWS-1][2]='Xc';
+  return m;
+}
+function buildSchoolMap(){
+  const m=[]; for(let y=0;y<ROWS;y++){const r=[];for(let x=0;x<COLS;x++){ if(y===0||y===ROWS-1||x===0||x===COLS-1)r.push('W'); else if(y<6)r.push('h'); else r.push('gy'); }m.push(r);}
+  for(let x=1;x<=18;x++){ if(x!==9&&x!==10) m[6][x]='W'; }
+  for(let y=2;y<=4;y++){ m[y][3]='Lk';m[y][6]='Lk';m[y][9]='Lk';m[y][12]='Lk';m[y][15]='Lk'; }
+  m[10][3]='Bk';m[10][4]='Bk'; m[10][15]='Bk';m[10][16]='Bk'; m[0][9]='Xs';m[0][10]='Xs';
+  return m;
+}
+function buildCenterMap(){
+  const m=[]; for(let y=0;y<ROWS;y++){const r=[];for(let x=0;x<COLS;x++){ if(y===0||y===ROWS-1||x===0||x===COLS-1)r.push('W'); else r.push('cc'); }m.push(r);}
+  for(let x=4;x<10;x++)m[3][x]='Tb'; m[2][6]='c';m[2][7]='c'; m[4][4]='c';m[4][9]='c';
+  for(let x=12;x<17;x++)m[8][x]='Tb'; m[7][13]='c';m[7][15]='c'; m[9][13]='c';m[9][15]='c';
+  m[5][2]='K3'; m[ROWS-1][9]='Xc';m[ROWS-1][10]='Xc';
+  return m;
+}
+const maps = { clinic:buildClinicMap(), street:buildStreetMap(), school:buildSchoolMap(), center:buildCenterMap() };
+
+const npcs = {
+  clinic:[
+    {x:4,y:4,id:'marisol',name:'Marisol',done:false,facing:'down'},
+    {x:15,y:5,id:'parent',name:'Ms. Okafor',done:false,facing:'down'},
+    {x:3,y:3,id:'intake_worker',name:'Sofia',done:false,facing:'down'},
+    {x:14,y:9,id:'director',name:'Dr. Patel',done:false,facing:'left'},
+    {x:5,y:9,id:'staff',name:'Nurse Diaz',done:false,info:true,facing:'down'}
+  ],
+  street:[{x:10,y:5,id:'kid',name:'Jamal',done:false,facing:'down'}],
+  school:[{x:10,y:9,id:'teen',name:'Riley',done:false,facing:'down'}],
+  center:[{x:10,y:5,id:'senior',name:'Mr. Chen',done:false,facing:'down'}]
+};
+
+const MOVE_MS=140, TRANS_MS=200;
+let state={ map:'clinic', px:5, py:10, renderX:5*TILE, renderY:10*TILE, facing:'up', moving:false, moveT:0, fromX:0, fromY:0, toX:0, toY:0, solved:0, inDialog:false, inMenu:false, started:false };
+let transition={active:false, phase:'out', t:0, pendMap:null, pendX:0, pendY:0};
+let completeShown=false;
+
+function getMap(){ return maps[state.map]; }
+function getNpcs(){ return npcs[state.map]; }
+
+/* ---------- persistence (safe) ---------- */
+const SAVE_KEY='harlem_health_rotation_v6';
+function save(){ try{ const ids=[]; for(const mp in npcs)for(const n of npcs[mp]) if(n.done&&!n.info) ids.push(n.id); localStorage.setItem(SAVE_KEY, JSON.stringify({solved:ids})); }catch(e){} }
+function load(){ try{ const r=localStorage.getItem(SAVE_KEY); if(!r)return; const d=JSON.parse(r); const set=new Set(d.solved||[]); let c=0; for(const mp in npcs)for(const n of npcs[mp]) if(set.has(n.id)){ n.done=true; c++; } state.solved=c; }catch(e){} }
+function resetProgress(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} for(const mp in npcs)for(const n of npcs[mp]) n.done=false; state.solved=0; completeShown=false; closeMenu(); updateHud(); render(); }
+
+/* ---------- tile rendering (cached per map) ---------- */
+let mapCanvasCache={};
+function drawFloorBase(c,px,py,color,shade){ c.fillStyle=color;c.fillRect(px,py,TILE,TILE); c.fillStyle=shade;c.fillRect(px,py+TILE-2,TILE,2);c.fillRect(px+TILE-2,py,2,TILE); }
+function drawTileProc(c,x,y,type){
+  const px=x*TILE, py=y*TILE;
+  if(type==='W'){ c.fillStyle=PAL.wall;c.fillRect(px,py,TILE,TILE); c.fillStyle=PAL.wallLight;c.fillRect(px,py,TILE,3); c.fillStyle=PAL.wallShade;c.fillRect(px,py+TILE-4,TILE,4); c.fillStyle='rgba(255,255,255,0.05)';c.fillRect(px+4,py+8,8,2);c.fillRect(px+20,py+18,8,2); }
+  else if(type==='.'){ drawFloorBase(c,px,py,PAL.floor,PAL.floorShade); if((x+y)%3===0){c.fillStyle=PAL.floorLight;c.fillRect(px+4,py+6,3,3);} }
+  else if(type==='e'){ drawFloorBase(c,px,py,PAL.examFloor,PAL.examFloorShade); c.fillStyle='#E8F0F2';c.fillRect(px+TILE/2-1,py,2,TILE); }
+  else if(type==='b'){ drawFloorBase(c,px,py,PAL.officeFloor,PAL.officeFloorShade); if((x+y)%2===0){c.fillStyle='rgba(0,0,0,0.04)';c.fillRect(px+2,py+2,TILE-4,TILE-4);} }
+  else if(type==='h'){ drawFloorBase(c,px,py,PAL.schoolFloor,PAL.schoolFloorShade); c.fillStyle='rgba(0,0,0,0.06)';c.fillRect(px,py+TILE-1,TILE,1); }
+  else if(type==='gy'){ drawFloorBase(c,px,py,PAL.gymFloor,PAL.gymFloorShade); c.fillStyle='rgba(165,120,80,0.15)';for(let i=0;i<TILE;i+=8)c.fillRect(px,py+i,TILE,1); if(y===9&&x===10){c.strokeStyle=PAL.gymLine;c.lineWidth=2;c.beginPath();c.arc(px+TILE,py+TILE/2,18,0,Math.PI*2);c.stroke();} }
+  else if(type==='cc'){ drawFloorBase(c,px,py,PAL.centerFloor,PAL.centerFloorShade); if((x+y)%4===0){c.fillStyle='rgba(0,0,0,0.05)';c.fillRect(px+10,py+10,4,4);} }
+  else if(type==='s'||type==='r'){ c.fillStyle=PAL.street;c.fillRect(px,py,TILE,TILE); c.fillStyle=PAL.streetLight;c.fillRect(px,py,TILE,2); if(type==='r'){c.fillStyle=PAL.streetLine;c.fillRect(px+12,py+10,8,4);c.fillRect(px+12,py+22,8,4);} }
+  else if(type==='p'){ c.fillStyle=PAL.sidewalk;c.fillRect(px,py,TILE,TILE); c.fillStyle=PAL.sidewalkShade;c.fillRect(px+TILE-1,py,1,TILE);c.fillRect(px,py+TILE-1,TILE,1); if((x+y)%2===0){c.fillStyle=PAL.sidewalkCrack;c.fillRect(px+TILE/2,py,1,TILE);} }
+  else if(type==='g'){ c.fillStyle=PAL.grass;c.fillRect(px,py,TILE,TILE); c.fillStyle=PAL.grassShade; if((x+y)%2===0){c.fillRect(px+6,py+6,2,2);c.fillRect(px+18,py+20,2,2);} c.fillStyle=PAL.grassTuft; if((x*7+y*3)%5===0){c.fillRect(px+12,py+14,1,3);c.fillRect(px+13,py+13,1,2);} }
+  else if(type==='D'){ drawFloorBase(c,px,py,PAL.floor,PAL.floorShade); c.fillStyle=PAL.desk;c.fillRect(px,py+8,TILE,TILE-8); c.fillStyle=PAL.deskHighlight;c.fillRect(px,py+8,TILE,2); c.fillStyle=PAL.deskShade;c.fillRect(px,py+TILE-3,TILE,3); if(x===2){c.fillStyle='#2C2C2A';c.fillRect(px+6,py+14,12,8);c.fillStyle='#85B7EB';c.fillRect(px+7,py+15,10,6);} if(x===4){c.fillStyle='#F1EFE8';c.fillRect(px+6,py+14,8,10);c.fillStyle='#888780';c.fillRect(px+7,py+16,6,1);c.fillRect(px+7,py+18,6,1);c.fillRect(px+7,py+20,4,1);} }
+  else if(type==='C'){ drawFloorBase(c,px,py,x>10?PAL.examFloor:PAL.floor,x>10?PAL.examFloorShade:PAL.floorShade); c.fillStyle=PAL.chair;c.fillRect(px+6,py+4,20,22); c.fillStyle=PAL.chairShade;c.fillRect(px+6,py+24,20,4);c.fillRect(px+6,py+4,4,22); c.fillStyle='rgba(255,255,255,0.15)';c.fillRect(px+10,py+6,12,2); }
+  else if(type==='c'){ const onExam=x>11&&y<8; drawFloorBase(c,px,py,x>10?(onExam?PAL.examFloor:PAL.officeFloor):PAL.floor,x>10?(onExam?PAL.examFloorShade:PAL.officeFloorShade):PAL.floorShade); c.fillStyle=PAL.chair;c.fillRect(px+8,py+8,16,16); c.fillStyle=PAL.chairShade;c.fillRect(px+8,py+22,16,2); c.fillStyle='rgba(255,255,255,0.1)';c.fillRect(px+10,py+10,12,2); }
+  else if(type==='T'){ drawFloorBase(c,px,py,PAL.examFloor,PAL.examFloorShade); c.fillStyle=PAL.examTable;c.fillRect(px,py+4,TILE,18); c.fillStyle=PAL.examPaper;c.fillRect(px,py+6,TILE,4); c.fillStyle=PAL.examTableShade;c.fillRect(px,py+20,TILE,2); c.fillStyle='#5A4F44';c.fillRect(px+4,py+22,3,8);c.fillRect(px+TILE-7,py+22,3,8); }
+  else if(type==='Tb'){ drawFloorBase(c,px,py,x<10?PAL.officeFloor:PAL.centerFloor,x<10?PAL.officeFloorShade:PAL.centerFloorShade); c.fillStyle=PAL.table;c.fillRect(px,py+8,TILE,16); c.fillStyle=PAL.tableShade;c.fillRect(px,py+22,TILE,2); c.fillStyle=PAL.deskHighlight;c.fillRect(px,py+8,TILE,2); }
+  else if(type==='Lk'){ drawFloorBase(c,px,py,PAL.schoolFloor,PAL.schoolFloorShade); c.fillStyle=PAL.desk;c.fillRect(px+6,py+4,20,18); c.fillStyle=PAL.deskHighlight;c.fillRect(px+6,py+4,20,2); c.fillStyle=PAL.deskShade;c.fillRect(px+6,py+20,20,2); c.fillStyle=PAL.chair;c.fillRect(px+10,py+22,12,8); c.fillStyle='#F1EFE8';c.fillRect(px+10,py+8,12,8); c.fillStyle='#888780';c.fillRect(px+11,py+10,10,1);c.fillRect(px+11,py+12,8,1); }
+  else if(type==='Bk'){ drawFloorBase(c,px,py,PAL.gymFloor,PAL.gymFloorShade); c.fillStyle=PAL.bookshelf;c.fillRect(px+2,py+2,TILE-4,TILE-4); c.fillStyle=PAL.bookshelfShade;c.fillRect(px+2,py+TILE-6,TILE-4,2); c.fillStyle='#FCDE5A';c.fillRect(px+12,py+18,8,1); c.fillStyle=PAL.book;c.fillRect(px+14,py+10,4,8); }
+  else if(type==='K'||type==='K2'||type==='K3'){ drawFloorBase(c,px,py,type==='K2'?PAL.officeFloor:(type==='K3'?PAL.centerFloor:PAL.floor),type==='K2'?PAL.officeFloorShade:(type==='K3'?PAL.centerFloorShade:PAL.floorShade)); c.fillStyle=PAL.whiteboardFrame;c.fillRect(px+2,py+2,TILE-4,TILE-4); c.fillStyle=PAL.whiteboard;c.fillRect(px+4,py+4,TILE-8,TILE-8); c.fillStyle=PAL.whiteboardText;c.font='bold 8px monospace';c.textAlign='center'; c.fillText(type==='K'?'WIC':(type==='K2'?'$$$':'SR'),px+TILE/2,py+TILE/2-2); c.fillStyle='#185FA5';c.fillRect(px+8,py+TILE/2+2,4,1);c.fillRect(px+8,py+TILE/2+5,6,1);c.fillRect(px+8,py+TILE/2+8,4,1); c.textAlign='start'; }
+  else if(type==='X'||type==='Xs'||type==='Xc'){ drawFloorBase(c,px,py,PAL.floor,PAL.floorShade); c.fillStyle=PAL.door;c.fillRect(px+2,py+2,TILE-4,TILE-4); c.fillStyle=PAL.doorShade;c.fillRect(px+2,py+TILE-6,TILE-4,4); c.fillStyle=PAL.doorArrow;c.font='bold 7px monospace';c.textAlign='center'; c.fillText(type==='X'?'EXIT':(type==='Xs'?'SCHL':'CTR'),px+TILE/2,py+TILE/2+2); c.textAlign='start'; }
+  else if(type==='B'){ c.fillStyle=PAL.bodega;c.fillRect(px,py,TILE,TILE); c.fillStyle=PAL.bodegaShade;c.fillRect(px,py+TILE-4,TILE,4);c.fillRect(px+TILE-3,py,3,TILE); if(y===0){c.fillStyle=PAL.bodegaSign;c.fillRect(px,py+6,TILE,6); if(x===4){c.fillStyle=PAL.bodegaShade;c.font='bold 8px monospace';c.textAlign='center';c.fillText('BODEGA',px+TILE/2,py+11);c.textAlign='start';}} if(y===2){c.fillStyle=PAL.bodegaWindow;c.fillRect(px+4,py+4,TILE-8,TILE-12);c.fillStyle='rgba(255,255,255,0.3)';c.fillRect(px+6,py+6,4,4);} }
+  else if(type==='S'){ c.fillStyle=PAL.school;c.fillRect(px,py,TILE,TILE); c.fillStyle=PAL.schoolShade;c.fillRect(px,py+TILE-4,TILE,4);c.fillRect(px+TILE-3,py,3,TILE); if(y===0){c.fillStyle=PAL.schoolSign;c.fillRect(px,py+6,TILE,6); if(x===15){c.fillStyle=PAL.schoolShade;c.font='bold 8px monospace';c.textAlign='center';c.fillText('SCHOOL',px+TILE/2,py+11);c.textAlign='start';}} if(y===2){c.fillStyle=PAL.schoolWindow;c.fillRect(px+4,py+4,TILE-8,TILE-12);c.fillStyle='rgba(255,255,255,0.3)';c.fillRect(px+6,py+6,4,4);} }
+  else if(type==='Bus'){ drawFloorBase(c,px,py,PAL.sidewalk,PAL.sidewalkShade); c.fillStyle=PAL.bus;c.fillRect(px+2,py+2,TILE-4,TILE-8); c.fillStyle=PAL.busShade;c.fillRect(px+2,py+TILE-10,TILE-4,2); c.fillStyle=PAL.busSign;c.fillRect(px+6,py+8,TILE-12,8); if(x===10){c.fillStyle=PAL.busShade;c.font='bold 7px monospace';c.textAlign='center';c.fillText('BUS',px+TILE/2,py+14);c.textAlign='start';} c.fillStyle='#2C2C2A';c.fillRect(px+TILE/2-1,py+TILE-8,2,6); }
+  else { drawFloorBase(c,px,py,PAL.floor,PAL.floorShade); }
+}
+function getMapCanvas(name){
+  if(mapCanvasCache[name]) return mapCanvasCache[name];
+  const oc=document.createElement('canvas'); oc.width=COLS*TILE; oc.height=ROWS*TILE;
+  const oc2=oc.getContext('2d'); oc2.imageSmoothingEnabled=false;
+  const map=maps[name];
+  for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+    const code=map[y][x];
+    const img=ASSETS.tiles[code];
+    if(img&&img._ready) oc2.drawImage(img,x*TILE,y*TILE,TILE,TILE);
+    else drawTileProc(oc2,x,y,code);
+  }
+  mapCanvasCache[name]=oc; return oc;
+}
+
+/* ---------- sprite rendering ---------- */
+function drawSpriteProc(px,py,id,facing,stepping){
+  const co=SPRITES[id]||SPRITES.player;
+  ctx.fillStyle=PAL.shadow; ctx.beginPath(); ctx.ellipse(px+TILE/2,py+TILE-3,9,3,0,0,Math.PI*2); ctx.fill();
+  const idle = (!stepping && !prefersReduced) ? Math.round(Math.sin(Date.now()/700 + (px+py)*0.02)*0.8) : 0;
+  const yo = (stepping ? -1 : 0) + idle;
+  ctx.fillStyle=co.skin; ctx.fillRect(px+10,py+4+yo,12,10); ctx.fillStyle='#D4A57E'; ctx.fillRect(px+10,py+12+yo,12,2);
+  ctx.fillStyle=co.hair; ctx.fillRect(px+10,py+3+yo,12,3);
+  if(id==='teen'){ ctx.fillStyle=co.hair; ctx.fillRect(px+21,py+5+yo,3,9); }
+  ctx.fillStyle='#2C2C2A';
+  if(facing==='down'||!facing){ ctx.fillRect(px+12,py+8+yo,2,2);ctx.fillRect(px+18,py+8+yo,2,2); ctx.fillStyle='#FFF';ctx.fillRect(px+12,py+8+yo,1,1);ctx.fillRect(px+18,py+8+yo,1,1); ctx.fillStyle='#993C1D';ctx.fillRect(px+14,py+11+yo,4,1); }
+  else if(facing==='up'){ ctx.fillStyle=co.hair; ctx.fillRect(px+10,py+4+yo,12,3); }
+  else if(facing==='left'){ ctx.fillRect(px+11,py+8+yo,2,2); }
+  else if(facing==='right'){ ctx.fillRect(px+19,py+8+yo,2,2); }
+  if(id==='director'||id==='senior'){ ctx.strokeStyle='#2C2C2A';ctx.lineWidth=1; ctx.strokeRect(px+11,py+7+yo,4,3);ctx.strokeRect(px+17,py+7+yo,4,3); }
+  ctx.fillStyle=co.body; ctx.fillRect(px+9,py+14+yo,14,12); ctx.fillStyle=co.body2; ctx.fillRect(px+9,py+23+yo,14,3); ctx.fillStyle=co.accent; ctx.fillRect(px+15,py+16+yo,2,4);
+  ctx.fillStyle=co.skin;
+  if(!stepping){ ctx.fillRect(px+7,py+18+yo,3,6);ctx.fillRect(px+22,py+18+yo,3,6); } else { ctx.fillRect(px+7,py+17+yo,3,5);ctx.fillRect(px+22,py+19+yo,3,5); }
+  ctx.fillStyle='#2C2C2A';
+  if(!stepping){ ctx.fillRect(px+11,py+26+yo,4,4);ctx.fillRect(px+17,py+26+yo,4,4); } else { ctx.fillRect(px+10,py+26+yo,4,4);ctx.fillRect(px+18,py+25+yo,4,5); }
+}
+function drawSprite(px,py,id,facing,stepping){
+  const set=ASSETS.sprites[id];
+  let img=null;
+  if(set){ img = (set[facing]&&set[facing]._ready)?set[facing] : (set.down&&set.down._ready?set.down:null); }
+  ctx.fillStyle=PAL.shadow; ctx.beginPath(); ctx.ellipse(px+TILE/2,py+TILE-3,9,3,0,0,Math.PI*2); ctx.fill();
+  if(img){ ctx.drawImage(img,px,py+(stepping?-1:0),TILE,TILE); }
+  else drawSpriteProc(px,py,id,facing,stepping);
+}
+function drawBubble(px,py,kind){
+  const bob=Math.sin(Date.now()/300)*1.5;
+  let ring,fill,glyph;
+  if(kind==='quest'){ ring='#EF9F27';fill='#FCDE5A';glyph='!'; }
+  else if(kind==='info'){ ring='#185FA5';fill='#378ADD';glyph='?'; }
+  else { ring='#0F6E56';fill='#1D9E75';glyph=''; }
+  ctx.fillStyle=ring; ctx.beginPath(); ctx.arc(px+27,py+2+bob,8,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=fill; ctx.beginPath(); ctx.arc(px+27,py+2+bob,6,0,Math.PI*2); ctx.fill();
+  if(kind==='done'){ ctx.strokeStyle='#04342C';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(px+24,py+2+bob);ctx.lineTo(px+26,py+4+bob);ctx.lineTo(px+30,py-1+bob);ctx.stroke(); }
+  else { ctx.fillStyle=kind==='quest'?'#412402':'#042C53'; ctx.font='bold 11px monospace'; ctx.fillText(glyph,px+25,py+6+bob); }
+}
+
+function npcBubbleKind(n){ if(n.info) return 'info'; return n.done?'done':'quest'; }
+
+function render(){
+  ctx.clearRect(0,0,cvs.width,cvs.height);
+  ctx.drawImage(getMapCanvas(state.map),0,0);
+  const ents=[];
+  for(const n of getNpcs()) ents.push({px:n.x*TILE,py:n.y*TILE,id:n.id,facing:n.facing,stepping:false,bubble:npcBubbleKind(n)});
+  ents.push({px:state.renderX,py:state.renderY,id:'player',facing:state.facing,stepping:state.moving,bubble:null});
+  ents.sort((a,b)=>a.py-b.py);
+  for(const e of ents){ drawSprite(e.px,e.py,e.id,e.facing,e.stepping); if(e.bubble) drawBubble(e.px,e.py,e.bubble); }
+  const fn=facedNpc();
+  if(fn && state.started && !state.moving && !transition.active && !state.inDialog && !state.inMenu){
+    const px=fn.x*TILE, py=fn.y*TILE; const b=Math.sin(Date.now()/250)*1;
+    ctx.fillStyle='rgba(0,0,0,0.75)'; ctx.fillRect(px-4,py-14+b,40,11);
+    ctx.fillStyle='#FCDE5A'; ctx.font='bold 8px monospace'; ctx.textAlign='center'; ctx.fillText('SPACE',px+16,py-6+b); ctx.textAlign='start';
+  }
+  if(transition.active){ const a = transition.phase==='out'?transition.t:(1-transition.t); ctx.fillStyle='rgba(8,8,6,'+a+')'; ctx.fillRect(0,0,cvs.width,cvs.height); }
+  const g=ctx.createRadialGradient(cvs.width/2,cvs.height/2,cvs.height/3,cvs.width/2,cvs.height/2,cvs.height/0.9);
+  g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,0.28)');
+  ctx.fillStyle=g; ctx.fillRect(0,0,cvs.width,cvs.height);
+}
+
+/* ---------- movement ---------- */
+function isBlocked(x,y){
+  if(x<0||y<0||x>=COLS||y>=ROWS) return true;
+  const t=getMap()[y][x];
+  if(['W','D','C','c','T','Tb','Lk','Bk','K','K2','K3','B','S','Bus'].includes(t)) return true;
+  for(const n of getNpcs()) if(n.x===x&&n.y===y) return true;
+  return false;
+}
+const EXITS={ clinic:{X:['street',9,1,'down']}, street:{X:['clinic',5,ROWS-2,'up'],Xs:['school',9,1,'down'],Xc:['center',9,ROWS-2,'up']}, school:{Xs:['street',15,3,'down']}, center:{Xc:['street',1,ROWS-2,'up']} };
+const LOC_LABELS={ clinic:'EAST HARLEM COMMUNITY HEALTH', street:'116TH ST & LEXINGTON AVE', school:'PS 83 - MIDDLE SCHOOL', center:'EAST HARLEM SENIOR CENTER' };
+const DIRS={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+
+function beginTransition(dest){ transition.active=true; transition.phase='out'; transition.t=0; transition.pendMap=dest[0]; transition.pendX=dest[1]; transition.pendY=dest[2]; transition.pendFacing=dest[3]; }
+function startMove(dir){
+  const [dx,dy]=DIRS[dir]; state.facing=dir;
+  const tx=state.px+dx, ty=state.py+dy;
+  if(tx<0||ty<0||tx>=COLS||ty>=ROWS) return;
+  const t=getMap()[ty][tx];
+  const ex=EXITS[state.map] && EXITS[state.map][t];
+  if(ex){ beginTransition(ex); return; }
+  if(isBlocked(tx,ty)) return;
+  state.px=tx; state.py=ty; state.moving=true; state.moveT=0;
+  state.fromX=(tx-dx)*TILE; state.fromY=(ty-dy)*TILE; state.toX=tx*TILE; state.toY=ty*TILE;
+}
+function facedNpc(){ const [dx,dy]=DIRS[state.facing]; const fx=state.px+dx, fy=state.py+dy; for(const n of getNpcs()) if(n.x===fx&&n.y===fy) return n; return null; }
+
+/* ---------- input ---------- */
+const heldKeys=new Set(); const keyOrder=[];
+function pressDir(d){ if(!heldKeys.has(d)){ heldKeys.add(d); keyOrder.push(d); } }
+function releaseDir(d){ heldKeys.delete(d); const i=keyOrder.indexOf(d); if(i>=0)keyOrder.splice(i,1); }
+function heldDir(){ for(let i=keyOrder.length-1;i>=0;i--) if(heldKeys.has(keyOrder[i])) return keyOrder[i]; return null; }
+function clearHeld(){ heldKeys.clear(); keyOrder.length=0; }
+function canMove(){ return state.started && !state.inDialog && !state.inMenu && !transition.active && !completeShown; }
+
+document.addEventListener('keydown',e=>{
+  const k=e.key.toLowerCase();
+  if(!state.started){ if(k===' '||k==='enter'){ e.preventDefault(); startGame(); } return; }
+  // Escape backs out of whatever is open
+  if(k==='escape'){
+    if(state.inMenu){ e.preventDefault(); closeMenu(); return; }
+    if(completeShown){ e.preventDefault(); window.__closeComplete(); return; }
+    if(state.inDialog){
+      e.preventDefault();
+      if(document.getElementById('debrief').style.display==='block') window.__closeDebrief();
+      else window.__cancelSc();
+      return;
+    }
+    if(document.getElementById('panel').style.display==='block'){ e.preventDefault(); window.__closeMsg(); return; }
+    return;
+  }
+  if(k==='n'&&!state.inDialog&&!completeShown){ e.preventDefault(); state.inMenu?closeMenu():openMenu(); return; }
+  // Number keys commit a diagnosis while a scenario is open (matches the [1]-[4] labels)
+  if(state.inDialog && curSc && document.getElementById('debrief').style.display!=='block'){
+    const dn=parseInt(k,10);
+    if(dn>=1 && dn<=curSc.diagnoses.length && evidence.length>=2){ e.preventDefault(); window.__commit(dn-1); return; }
+  }
+  if(state.inDialog||state.inMenu||completeShown) return;
+  if(k==='arrowup'||k==='w'){e.preventDefault();pressDir('up');}
+  else if(k==='arrowdown'||k==='s'){e.preventDefault();pressDir('down');}
+  else if(k==='arrowleft'||k==='a'){e.preventDefault();pressDir('left');}
+  else if(k==='arrowright'||k==='d'){e.preventDefault();pressDir('right');}
+  else if(k===' '||k==='e'||k==='enter'){e.preventDefault();interact();}
+});
+document.addEventListener('keyup',e=>{
+  const k=e.key.toLowerCase();
+  if(k==='arrowup'||k==='w')releaseDir('up');
+  else if(k==='arrowdown'||k==='s')releaseDir('down');
+  else if(k==='arrowleft'||k==='a')releaseDir('left');
+  else if(k==='arrowright'||k==='d')releaseDir('right');
+});
+cvs.tabIndex=0; cvs.addEventListener('click',()=>cvs.focus());
+if('ontouchstart' in window){
+  const tc=document.getElementById('touch-controls'); tc.style.display='flex';
+  tc.querySelectorAll('button').forEach(b=>{
+    const d=b.dataset.dir;
+    const down=ev=>{ev.preventDefault(); if(!state.started){startGame();return;} if(d==='act'){interact();} else pressDir(d);};
+    const up=ev=>{ev.preventDefault(); if(d!=='act')releaseDir(d);};
+    b.addEventListener('pointerdown',down); b.addEventListener('pointerup',up); b.addEventListener('pointerleave',up);
+  });
+}
+
+/* ---------- interaction & dialog ---------- */
+function interact(){ if(!canMove())return; const n=facedNpc(); if(!n)return;
+  if(n.info){ showMessage(n.name,n.id,'Nurse Diaz: "Lot going on today. Marisol in the waiting room, Ms. Okafor in the exam room, Sofia is swamped at intake, and Dr. Patel is prepping for a board meeting in the back. The south door leads out to the neighborhood. Pick a fire."'); return; }
+  if(n.done){ showMessage(n.name,n.id,n.name+': "Thanks for your help earlier. I\'m doing better."'); return; }
+  const sc=SCENARIOS[n.id]; if(sc) openScenario(sc,n);
+}
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function drawPortraitProc(id,size){
+  const c=document.createElement('canvas'); c.width=size;c.height=size; const cx=c.getContext('2d'); cx.imageSmoothingEnabled=false;
+  const co=SPRITES[id]||SPRITES.player; const s=size/32;
+  cx.fillStyle='#1a1a18';cx.fillRect(0,0,size,size); cx.fillStyle='#2C2C2A'; for(let i=0;i<size;i+=4*s)cx.fillRect(0,i,size,1*s);
+  cx.fillStyle=co.skin;cx.fillRect(8*s,8*s,16*s,14*s); cx.fillStyle='#D4A57E';cx.fillRect(8*s,18*s,16*s,4*s);
+  cx.fillStyle=co.hair;cx.fillRect(7*s,6*s,18*s,4*s);
+  if(id==='teen'){cx.fillStyle=co.hair;cx.fillRect(22*s,7*s,4*s,12*s);}
+  if(id==='kid'){cx.fillStyle=co.hair;cx.fillRect(7*s,6*s,18*s,3*s);}
+  cx.fillStyle='#2C2C2A';cx.fillRect(11*s,12*s,3*s,3*s);cx.fillRect(18*s,12*s,3*s,3*s); cx.fillStyle='#FFF';cx.fillRect(12*s,12*s,1*s,1*s);cx.fillRect(19*s,12*s,1*s,1*s);
+  if(id==='director'||id==='senior'){cx.strokeStyle='#2C2C2A';cx.lineWidth=s;cx.strokeRect(10*s,11*s,5*s,5*s);cx.strokeRect(17*s,11*s,5*s,5*s);cx.beginPath();cx.moveTo(15*s,13*s);cx.lineTo(17*s,13*s);cx.stroke();}
+  cx.fillStyle='#993C1D'; cx.fillRect(13*s,17*s,6*s,(id==='teen'||id==='intake_worker')?2*s:1*s);
+  cx.fillStyle=co.body;cx.fillRect(6*s,22*s,20*s,10*s); cx.fillStyle=co.body2;cx.fillRect(6*s,29*s,20*s,3*s); cx.fillStyle=co.accent;cx.fillRect(14*s,24*s,4*s,3*s);
+  if(id==='director'){cx.fillStyle='#F1EFE8';cx.fillRect(8*s,24*s,4*s,6*s);cx.fillRect(20*s,24*s,4*s,6*s);}
+  if(id==='marisol'){cx.fillStyle=co.body2;cx.beginPath();cx.arc(16*s,28*s,8*s,0,Math.PI*2);cx.fill();}
+  return c.toDataURL();
+}
+function portraitSrc(id){ const im=ASSETS.portraits[id]; if(im&&im._ready) return im.src; return drawPortraitProc(id,96); }
+
+function showMessage(name,id,text){
+  SFX.open();
+  const p=document.getElementById('panel'); p.style.display='block';
+  p.innerHTML='<div class="phr-card" style="background:#1a1a18;border:2px solid #FCDE5A;border-radius:8px;padding:14px;color:#F1EFE8;font-family:monospace;display:flex;gap:14px;align-items:flex-start">'
+   +'<img src="'+portraitSrc(id)+'" style="width:88px;height:88px;image-rendering:pixelated;border:2px solid #FCDE5A;border-radius:4px;flex-shrink:0">'
+   +'<div style="flex:1;font-size:13px;line-height:1.6">'+esc(text)+'<div style="margin-top:14px"><button onclick="window.__closeMsg()" style="background:#2C2C2A;color:#FCDE5A;border:1px solid #FCDE5A;padding:6px 14px;border-radius:3px;font-family:monospace;cursor:pointer">[ OK ]</button></div></div></div>';
+}
+window.__closeMsg=function(){ document.getElementById('panel').style.display='none'; cvs.focus(); };
+
+/* ---------- scenarios ---------- */
+const SCENARIOS={
+  marisol:{course:'FNPH 622',keyEvidence:['labs'],intro:{name:'Marisol Vega, 28',ctx:'32 weeks pregnant. Sitting in waiting room chair, looks tired.',quote:'"I\'ve been so exhausted lately. And I keep craving... this is gonna sound weird... ice. I chew it all day. Is that normal?"'},budget:4,pois:[{id:'food',label:'Review her food log',evidence:'Light on iron-rich foods. Lots of tea with meals. Rarely eats red meat - says it\'s expensive.'},{id:'labs',label:'Check her prenatal labs',evidence:'Hemoglobin 9.8 g/dL (low). Ferritin low. MCV slightly low. Otherwise unremarkable.'},{id:'vits',label:'Ask about prenatal vitamin routine',evidence:'Takes prenatal vitamin every morning - with her coffee.'},{id:'culture',label:'Ask about cultural food practices',evidence:'Family from Dominican Republic. Meat served on special occasions. Lots of rice, beans, plantains.'},{id:'bmi',label:'Check BMI trend',evidence:'Gained appropriately for 32 weeks. No red flag here.'},{id:'mh',label:'Screen for mental health',evidence:'Mood appropriate. Sleep okay aside from third-trimester wake-ups. Not depressed.'}],diagnoses:[{label:'Reassure her - pregnancy fatigue is normal.',correct:false,feedback:'Fatigue alone might be normal. Fatigue + pica (ice craving) + low hemoglobin is a textbook presentation you should never dismiss.'},{label:'Iron-deficiency anemia with pica. Adjust iron timing, pair with vitamin C, follow up in 4 weeks.',correct:true,feedback:'Right. Pica - especially pagophagia, the ice-chewing kind - is a near-pathognomonic sign of iron deficiency. Her labs confirm it. The fix isn\'t just more iron, it\'s iron taken away from coffee and tea (which inhibit absorption) and paired with vitamin C (which enhances it).'},{label:'Refer to mental health for the ice-chewing behavior.',correct:false,feedback:'Pica is a clinical sign of iron deficiency, not a psychiatric issue. This is a common misdiagnosis that delays the real treatment.'},{label:'Just increase her prenatal vitamin dose.',correct:false,feedback:'Tempting but misses the issue. She\'s taking it - but with coffee, which blocks absorption. More vitamin won\'t fix the absorption problem.'}],principle:{title:'Iron needs in pregnancy + absorption matters as much as intake',body:'Iron requirements nearly double in pregnancy (from 18mg to 27mg daily) to support expanded blood volume and fetal development. But iron is poorly absorbed - and absorption is wrecked by tannins (tea, coffee) and calcium taken together, while it\'s boosted by vitamin C. Pica - craving non-food items like ice, starch, or dirt - is a textbook clinical sign of iron deficiency, especially in pregnancy.',cite:'FNPH 622 - Unit 3 (Pregnancy Nutrition); Brown ch. 4-5'},debriefer:'Nurse Diaz',debrieferSprite:'staff'},
+  parent:{course:'FNPH 622',keyEvidence:['labs','diet'],intro:{name:'Ms. Okafor + son Daniel, 2yr',ctx:'In the exam room for a wellness check. Daniel is pale, quieter than expected.',quote:'"He\'s doing so good with his milk - the pediatrician told me whole milk is important so I make sure he gets enough. He drinks about 40 ounces a day. But he\'s been so pale lately."'},budget:4,pois:[{id:'diet',label:'Get a full diet recall',evidence:'40oz whole milk daily. Picks at solid foods - "fills up on milk." Almost no red meat, beans, or iron-fortified cereal.'},{id:'labs',label:'Order CBC + iron panel',evidence:'Hemoglobin 9.2 g/dL. MCV low (microcytic). Ferritin low. Classic iron-deficiency anemia pattern.'},{id:'growth',label:'Check growth chart',evidence:'Weight 75th percentile. Height 50th. Not underweight - weight-for-height creeping up.'},{id:'dev',label:'Developmental screen',evidence:'Walking, talking on track. But mom mentions less interested in play, mild irritability.'},{id:'feed',label:'Ask about feeding behavior',evidence:'Carries sippy cup of milk everywhere. Drinks throughout the day. Refuses iron-rich foods.'},{id:'mom',label:'Ask what advice mom has been given',evidence:'Pediatrician 18 months ago said "whole milk is important for brain development." She\'s following the advice.'}],diagnoses:[{label:'Tell mom to stop the milk immediately - it\'s causing anemia.',correct:false,feedback:'Clinically correct, interpersonally a disaster. Mom is doing what a pediatrician told her. The right answer addresses the medical issue AND respects that she\'s been following advice in good faith.'},{label:'Iron-deficiency anemia from excessive milk intake. Cap milk at 16-20oz, prioritize iron-rich foods, start iron supplement, follow up in 6-8 weeks. Frame it as updating the plan.',correct:true,feedback:'Right - both the medicine and the bedside manner. Toddlers who drink over 24oz of milk daily are at high risk for iron deficiency: calcium in dairy inhibits iron absorption AND they\'re too full to eat iron-rich foods. The framing matters: "the advice you got was right for an infant, now we\'re updating it for a toddler" preserves trust.'},{label:'It\'s normal toddler pickiness. Recommend a multivitamin and revisit in 6 months.',correct:false,feedback:'Misses a real, treatable deficiency that\'s affecting his development right now. Iron deficiency in toddlerhood has cognitive and behavioral effects that can persist even after treatment.'},{label:'Refer to a pediatric GI specialist for the anemia workup.',correct:false,feedback:'Over-referral. This is a classic nutritional anemia with an obvious dietary cause - you need a diet change and an iron supplement, not a specialist.'}],principle:{title:'Healthy advice is dose-dependent and life-stage-dependent',body:'Whole milk is genuinely important for infants and beneficial for toddlers - but only up to a point. Above ~24oz daily it tips from helpful to harmful: calcium blocks dietary iron absorption, AND the volume crowds out iron-rich solid foods. Half of clinical nutrition is communicating dose, not just direction. A parent following outdated advice is not a negligent parent.',cite:'FNPH 622 - Unit 6 (Toddlers); AAP guidance on dairy intake'},debriefer:'Nurse Diaz',debrieferSprite:'staff'},
+  kid:{course:'PUBH 610',keyEvidence:['check','cu'],intro:{name:'Jamal, 11',ctx:'Standing at the bus stop, holding a school nutrition stipend check for $20.',quote:'"Miss said I could get $20 from the school program but I dunno where the bank is. My mom said the check-cashing place takes too much. School starts in 20 minutes."'},budget:4,pois:[{id:'purpose',label:'Ask what the $20 is for',evidence:'School nutrition stipend. Meant for fresh food. No regulation on spending.'},{id:'check',label:'Check out the check-cashing place',evidence:'Charges 4% fee + $1 flat. Jamal would lose ~$1.80 off his $20.'},{id:'bank',label:'Walk to the nearest bank',evidence:'Six blocks away. Requires ID + parent for under-13 accounts. Won\'t make it before school.'},{id:'cu',label:'Check the credit union three blocks down',evidence:'Has a youth account program. Needs a parent on first visit but is free, no fees.'},{id:'bodega',label:'Talk to the bodega owner',evidence:'Will cash it for free if Jamal buys something. The "something" is chips, soda, candy. No fresh produce.'},{id:'school',label:'Ask if the school has resources',evidence:'School already gave the stipend - they considered the cashing problem someone else\'s issue.'}],diagnoses:[{label:'Take Jamal to the bodega - fastest and free.',correct:false,feedback:'Defeats the entire purpose of a nutrition stipend. The $20 is meant for fresh food; cashing it at a bodega in exchange for processed snacks converts a health intervention into the opposite. Public health calls this "leakage."'},{label:'Tell Jamal to come back after school with a parent, set up a credit union youth account.',correct:true,feedback:'Right answer. Solves today (he holds the check) and solves the next 50 stipends. Address the upstream system, not the downstream symptom. The school-credit union partnership gap is a policy issue to flag.'},{label:'Just give Jamal $20 in cash from your wallet.',correct:false,feedback:'Solves today, teaches nothing, doesn\'t scale, creates a dependency that disappears the moment you do. Individual charity is not public health.'},{label:'Tell Jamal to ask the school for help.',correct:false,feedback:'The school already washed its hands. A community health worker\'s job is sometimes to bridge systems that aren\'t talking. Pushing him back to a system that already failed him is passing the buck.'}],principle:{title:'Financial access is health access',body:'Public health interventions often fail at the "last mile" - the point where a benefit has to be actually used. A $20 nutrition stipend that costs $1.80 to cash, or that only converts at a corner store with no fresh produce, isn\'t really a $20 stipend. The social-ecological model frames this as the community-level determinant: local infrastructure shapes the outcome.',cite:'PUBH 610 - Module 5 (Program Planning); social-ecological model'},debriefer:'Community Health Worker Alma',debrieferSprite:'staff'},
+  intake_worker:{course:'PUBH 610',keyEvidence:['wic_elig'],intro:{name:'Sofia (intake) + walk-in client',ctx:'Sofia is at the intake desk with a woman holding a baby, paperwork spread out.',quote:'Sofia: "She came in for WIC but she\'s undocumented, lives in a household of 5, husband works construction off-the-books. She\'s breastfeeding a 4-month-old. Help me figure out what she qualifies for?"'},budget:4,pois:[{id:'wic_elig',label:'Look up WIC eligibility rules',evidence:'WIC does NOT require citizenship or legal status. Income cutoff 185% federal poverty level. Self-declared income accepted.'},{id:'income',label:'Estimate household income',evidence:'Husband: ~$600/wk cash. Annualized ~$25-30k. Well under WIC cutoff. Qualifies clearly.'},{id:'medicaid',label:'Check Medicaid options',evidence:'NY State Emergency Medicaid for pregnancy/postpartum is open regardless of status. Baby is US-born, qualifies for full Medicaid + CHIP.'},{id:'snap',label:'Check SNAP eligibility',evidence:'SNAP requires legal status for the recipient. She doesn\'t qualify herself - baby qualifies, tricky paperwork.'},{id:'pna',label:'Check Pantry & Nutrition Assistance',evidence:'NYC EFAP food pantries: no documentation required. Open access.'},{id:'fears',label:'Ask client about her concerns',evidence:'Terrified of public charge rule. Heard signing up will get her deported. Declining benefits out of fear.'}],diagnoses:[{label:'Enroll her in WIC only. Skip the rest to keep it simple.',correct:false,feedback:'Leaving real benefits on the table. She qualifies for WIC AND Emergency Medicaid AND baby qualifies for full Medicaid + CHIP. Helping her access only one is helping her get less than she\'s legally entitled to.'},{label:'Enroll in WIC + Emergency Medicaid + baby on full Medicaid/CHIP. Skip SNAP. Address the public charge fear directly with the official 2024 guidance.',correct:true,feedback:'Right call. WIC, Medicaid, and CHIP are explicitly excluded from public charge consideration. SNAP for the baby is technically available but the paperwork burden plus her fear likely makes it not worth pursuing today. The fear is the real barrier, not the eligibility rules.'},{label:'She\'s undocumented - sorry, you can\'t help her with WIC.',correct:false,feedback:'Factually wrong. WIC eligibility is income-based, not status-based. This is one of the most common myths in intake work and results in eligible families being turned away.'},{label:'Tell her to come back with her husband\'s tax documents.',correct:false,feedback:'WIC accepts self-declared income. Demanding tax docs from someone whose husband works off-the-books creates a paperwork barrier that has nothing to do with eligibility - "administrative burden" is itself a measurable public health problem.'}],principle:{title:'Systems navigation is itself a public health intervention',body:'Eligibility on paper and enrollment in practice are different things. Qualified families miss benefits because of (1) misconceptions about who qualifies, (2) fear-based avoidance, (3) paperwork burden that doesn\'t match the actual rules, and (4) intake workers who haven\'t been trained on the exact regulations.',cite:'PUBH 610 - Module 2 (Healthcare Financing); administrative burden literature'},debriefer:'Sofia',debrieferSprite:'intake_worker'},
+  teen:{course:'FNPH 622',keyEvidence:['weight'],intro:{name:'Riley, 14',ctx:'In the school gym during a wellness screening day. Riley talks fast about their fitness routine.',quote:'"I\'ve been eating SO much healthier this year. Cut out all the junk. I only eat clean now - chicken and broccoli mostly. I work out every day. I feel amazing. Coach is really proud of me."'},budget:4,pois:[{id:'intake',label:'Ask about typical daily intake',evidence:'Breakfast: black coffee. Lunch: salad, no dressing. Dinner: chicken + broccoli. No snacks. "I just don\'t get hungry anymore." Dangerously low total intake.'},{id:'exercise',label:'Ask about exercise',evidence:'Track 2hrs/day. Plus "extra runs" on weekends. Plus core work before bed. Feels "anxious" if she misses a day.'},{id:'weight',label:'Check growth chart',evidence:'Weight dropped from 50th percentile to 15th in 8 months. Periods stopped 4 months ago.'},{id:'mood',label:'Ask how Riley is feeling generally',evidence:'"Great." Cold all the time. Tired but "in a good way, like an athlete tired."'},{id:'social',label:'Ask about social context',evidence:'New friend group this year. Coach praising her "discipline." Family thinks she\'s "doing great with health stuff."'},{id:'history',label:'Check prior records',evidence:'Happy, average-weight kid. Sudden behavioral shift starting last September.'}],diagnoses:[{label:'Praise the healthy choices, encourage Riley to keep it up.',correct:false,feedback:'The most dangerous wrong answer because it\'s the most common one. Praising restriction reinforces it. Riley already gets reinforcement from coach and family. "Eating healthy" framing is exactly how adolescent eating disorders hide in plain sight.'},{label:'Document concerns: weight drop, amenorrhea, restrictive intake, exercise compulsion, denial of hunger. Refer to adolescent medicine + pediatric mental health. Loop in parents carefully.',correct:true,feedback:'Right call. Weight loss crossing percentile lines + 4mo amenorrhea + restrictive intake + compulsive exercise + denial = concerning thresholds for a restrictive eating disorder. Your role isn\'t to diagnose or confront - it\'s to document accurately and route to specialists.'},{label:'Just tell Riley to eat more and gain some weight back.',correct:false,feedback:'Eating disorders are not "just eat more" problems any more than depression is a "just cheer up" problem. They have the highest mortality of any mental health condition. Telling a 14-year-old to eat more without a clinical team will be ignored at best.'},{label:'It\'s probably just adolescent body changes. Schedule a follow-up in 6 months.',correct:false,feedback:'The avoidance trap. Six months of untreated restrictive intake in a growing adolescent is a long time. Early intervention has the best outcomes.'}],principle:{title:'Recognize restriction even when it\'s framed as health',body:'Adolescent restrictive eating disorders frequently hide behind "clean eating," "wellness," and "discipline" language - frames the surrounding adults often reinforce because they read as virtuous. Clinical signs: weight loss crossing percentile lines, amenorrhea, cold intolerance, compulsive exercise, food rigidity, denial of hunger. The school health worker\'s role is to recognize the pattern and route to specialists, not to diagnose or treat. Saying nothing because it "might be normal" is itself a clinical choice with consequences.',cite:'FNPH 622 - Unit 7 (Adolescents); DSM-5 eating disorder criteria'},debriefer:'School Nurse Patel',debrieferSprite:'director'},
+  senior:{course:'FNPH 622',keyEvidence:['protein','strength'],intro:{name:'Mr. Chen, 78',ctx:'At the senior center for the weekly lunch program. Has been losing strength, mentioned a recent fall.',quote:'"My doctor said to eat less because I\'m getting older. I\'ve been doing low-calorie, low-fat for years. But I keep getting weaker. My legs just don\'t hold me up like they used to."'},budget:4,pois:[{id:'intake',label:'Get a typical day\'s intake',evidence:'Toast + tea breakfast. Soup + crackers lunch. Small chicken or fish + steamed vegetables dinner. Est 50g protein/day.'},{id:'strength',label:'Assess physical status',evidence:'Grip strength low for age. Slow rising from chair. Recent 8lb weight loss over 6 months. Classic sarcopenia.'},{id:'meds',label:'Review medications',evidence:'Statin, BP med, low-dose aspirin. Nothing explains weakness.'},{id:'protein',label:'Calculate his current protein vs needs',evidence:'Current: ~50g/day. Needs: 1.0-1.2g/kg = ~75-90g for him. Eating 60% of what he needs.'},{id:'advice',label:'Ask where the "eat less" advice came from',evidence:'GP 6 years ago, when he was overweight. Never updated. He\'s now underweight but following old guidance.'},{id:'social',label:'Ask about meals - eating alone?',evidence:'Wife passed 3 years ago. Eats alone most days. Senior center lunch is his only social meal. Lower appetite alone.'}],diagnoses:[{label:'Sarcopenia from inadequate protein intake. Increase protein to 75-90g/day distributed across meals, recommend resistance exercise, update physician.',correct:true,feedback:'Right. Older adults need MORE protein per kilogram than younger adults (1.0-1.2 g/kg vs. 0.8) because of anabolic resistance. The "eat less" advice from when he was overweight is now causing harm. Protein needs to be distributed across meals (body caps usable protein at ~25-30g per sitting). Plus the social isolation piece: appetite is partly social.'},{label:'Recommend a low-fat, low-sodium diet for cardiovascular health.',correct:false,feedback:'Defaulting to "heart-healthy" without examining what he needs. He has a protein problem, not a sodium problem.'},{label:'Refer to physical therapy for the weakness.',correct:false,feedback:'PT alone without addressing the nutritional cause is treating the symptom. Resistance training without adequate protein doesn\'t build muscle.'},{label:'Tell him to drink a protein shake daily and call it good.',correct:false,feedback:'Misses the distribution principle, the social meal piece, and the need to update his physician. Real food at meals is more sustainable.'}],principle:{title:'Older adults need more protein, not less - and meals are social',body:'(1) Protein requirements INCREASE with age due to anabolic resistance - older adults need 1.0-1.2 g/kg vs. the 0.8 g/kg standard, distributed across meals. (2) Appetite is partly social - eating alone systematically reduces intake. Senior center lunches and Meals on Wheels are not just food delivery, they\'re social health interventions.',cite:'FNPH 622 - Unit 8 (Older Adults); anabolic resistance literature'},debriefer:'Community Health Worker Alma',debrieferSprite:'staff'},
+  director:{course:'PUBH 610',keyEvidence:['sustain','data'],intro:{name:'Dr. Patel, clinic director',ctx:'In the back office, pacing in front of a whiteboard with sticky notes. Board meeting in an hour.',quote:'"The board approved $40K for a new maternal nutrition initiative. I have three options on the wall and the board wants my recommendation by 2pm. Which one do I push for?"'},budget:5,pois:[{id:'opt_a',label:'Read Option A: Hire a bilingual nutritionist',evidence:'$40K covers 0.5 FTE for one year. Serves ~100 patients. After year 1, position evaporates unless renewed.'},{id:'opt_b',label:'Read Option B: Subsidized produce box program',evidence:'$40K = 200 families x $200 (10 weekly boxes). Partners with existing CSA. Disappears when funds run out.'},{id:'opt_c',label:'Read Option C: Train community health workers from the neighborhood',evidence:'$40K trains 8 CHWs from East Harlem itself, with stipends. CHWs stay 3-5 years. Skills stay even if program ends.'},{id:'voice',label:'Ask who was consulted on these options',evidence:'Options designed by clinic staff (mostly non-East Harlem residents). No community input. Board: 1 community rep, 4 hospital admins.'},{id:'data',label:'Pull the neighborhood maternal health data',evidence:'East Harlem maternal mortality 2x city average. Top barriers in 2024 survey: trust in providers, language access, transportation. Nutrition knowledge ranked 8th of 12.'},{id:'sustain',label:'Ask about sustainability',evidence:'Grant is one-time, no renewal. After 12 months: A position ends, B program ends, C CHWs persist in workforce. Only C creates lasting capacity.'},{id:'time',label:'Check the meeting time pressure',evidence:'One hour. Board wants clean recommendation. Unlikely to delay vote. Time pressure favors "safe" / measurable options.'}],diagnoses:[{label:'Recommend Option A. Most measurable, easiest to defend.',correct:false,feedback:'Defensibility is not effectiveness. Option A is safest politically but it\'s a one-year position that evaporates, doesn\'t address actual top barriers, and centers clinic staff over community capacity.'},{label:'Recommend Option C - train CHWs from East Harlem - but flag to the board that community wasn\'t consulted and propose adding a community advisory step.',correct:true,feedback:'Right on both counts. Option C creates lasting workforce capacity, addresses top stated barriers (trust, language access), and skills persist. Flagging the consultation gap is the harder ask - the board will resist - but designing maternal health interventions without community consultation is how programs fail at scale.'},{label:'Recommend Option B. Direct material aid is what families need most.',correct:false,feedback:'Direct aid feels right and helps while funds last. But $40K for 100 families for 10 weeks creates no lasting capacity, doesn\'t address systemic barriers, and ends when the money does.'},{label:'Punt - ask the board to delay the vote.',correct:false,feedback:'The instinct is right but the execution is wrong. Boards rarely delay grant decisions. Make the substantively best recommendation NOW and structure implementation to include community input.'}],principle:{title:'Whose voice is in the room shapes whose health gets improved',body:'Program design happens in conference rooms. (1) Sustainable capacity outlasts one-time programs. (2) Stated community barriers should drive design, not assumptions from clinic staff. (3) Naming gaps in the process - "community wasn\'t consulted" - is itself a leadership intervention.',cite:'PUBH 610 - Module 6 (Leadership & Community Engagement); EMHP framework'},debriefer:'Dr. Patel',debrieferSprite:'director'}
+};
+
+let curSc=null, curNpc=null, evidence=[], usedBudget=0;
+function openScenario(sc,npc){ clearHeld(); SFX.open(); state.inDialog=true; curSc=sc; curNpc=npc; evidence=[]; usedBudget=0; renderScenario(); }
+function labelFor(sc,id){ const p=sc.pois.find(x=>x.id===id); return p?p.label:id; }
+function renderScenario(){
+  const sc=curSc; const p=document.getElementById('panel'); p.style.display='block'; document.getElementById('debrief').style.display='none';
+  const pois=sc.pois.map(po=>{ const used=evidence.find(e=>e.id===po.id);
+    if(used) return '<div style="padding:8px 10px;background:#0a0a08;border-left:3px solid #5DCAA5;border-radius:3px;font-size:12px;margin-bottom:4px;color:#C2C0B6"><span style="font-weight:500;color:#9FE1CB">'+esc(po.label)+'</span><br><span style="color:#9C9A92">'+esc(po.evidence)+'</span></div>';
+    const dis=usedBudget>=sc.budget;
+    return '<button class="phr-poi" '+(dis?'disabled':'')+' onclick="window.__poi(\''+po.id+'\')" style="display:block;width:100%;text-align:left;margin-bottom:4px;padding:8px 10px;background:'+(dis?'#1a1a18':'#2C2C2A')+';color:'+(dis?'#5F5E5A':'#FCDE5A')+';border:1px solid '+(dis?'#2C2C2A':'#5F5E5A')+';border-radius:3px;font-family:monospace;font-size:12px;cursor:'+(dis?'not-allowed':'pointer')+'">&gt; '+esc(po.label)+'</button>';
+  }).join('');
+  const canCommit=evidence.length>=2;
+  const commit=canCommit ? sc.diagnoses.map((d,i)=>'<button onclick="window.__commit('+i+')" style="display:block;width:100%;text-align:left;margin-bottom:4px;padding:10px;background:#2C2C2A;color:#F1EFE8;border:1px solid #5F5E5A;border-radius:3px;font-family:monospace;font-size:12px;line-height:1.4;cursor:pointer">[ '+(i+1)+' ] '+esc(d.label)+'</button>').join('') : '<div style="color:#888780;font-size:12px;font-style:italic;padding:10px;font-family:monospace">[ INVESTIGATE 2+ THINGS FIRST ]</div>';
+  p.innerHTML='<div class="phr-card" style="background:#1a1a18;border:2px solid #FCDE5A;border-radius:8px;padding:14px;color:#F1EFE8;font-family:monospace">'
+   +'<div style="display:flex;gap:14px;border-bottom:1px dashed #5F5E5A;padding-bottom:12px;margin-bottom:12px">'
+   +'<img src="'+portraitSrc(curNpc.id)+'" style="width:88px;height:88px;image-rendering:pixelated;border:2px solid #FCDE5A;border-radius:4px;flex-shrink:0">'
+   +'<div style="flex:1"><div style="font-weight:500;font-size:14px;color:#FCDE5A">'+esc(sc.intro.name)+'</div>'
+   +'<div style="font-size:11px;color:#9C9A92;margin-top:2px">'+esc(sc.intro.ctx)+'</div>'
+   +'<div style="margin-top:8px;padding:8px 10px;background:#0a0a08;border-left:3px solid #FCDE5A;border-radius:3px;font-size:12px;font-style:italic;color:#E1F5EE">'+esc(sc.intro.quote)+'</div></div></div>'
+   +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'
+   +'<div><div style="font-size:11px;color:#9FE1CB;margin-bottom:6px">INVESTIGATE [ '+(sc.budget-usedBudget)+' / '+sc.budget+' left ]</div>'+pois+'</div>'
+   +'<div><div style="font-size:11px;color:#9FE1CB;margin-bottom:6px">COMMIT</div>'+commit+'</div></div>'
+   +'<button onclick="window.__cancelSc()" style="margin-top:12px;background:transparent;color:#888780;border:1px solid #5F5E5A;padding:4px 10px;font-family:monospace;font-size:11px;cursor:pointer">[ WALK AWAY ]</button></div>';
+}
+window.__poi=function(id){ const po=curSc.pois.find(x=>x.id===id); if(!po||evidence.find(e=>e.id===id))return; evidence.push(po); usedBudget++; SFX.blip(); renderScenario(); };
+window.__commit=function(i){ const d=curSc.diagnoses[i]; showDebrief(d,curSc); if(d.correct&&!curNpc.done){ curNpc.done=true; state.solved++; addNote(curSc,curNpc); updateHud(); save(); } };
+window.__cancelSc=function(){ document.getElementById('panel').style.display='none'; state.inDialog=false; cvs.focus(); };
+
+function showDebrief(d,sc){
+  if(d.correct) SFX.right(); else SFX.wrong();
+  document.getElementById('panel').style.display='none';
+  const db=document.getElementById('debrief'); db.style.display='block';
+  const col=d.correct?'#5DCAA5':'#E24B4A'; const lab=d.correct?'>>> RIGHT CALL':'>>> NOT QUITE';
+  let rigor='';
+  if(d.correct){
+    const missing=sc.keyEvidence.filter(k=>!evidence.find(e=>e.id===k));
+    if(missing.length===0) rigor='<div style="margin-top:10px;padding:8px 10px;background:#0a0a08;border-left:3px solid #5DCAA5;border-radius:3px;font-size:11px;color:#9FE1CB">Clean work. You checked the key evidence ('+esc(sc.keyEvidence.map(k=>labelFor(sc,k)).join(', '))+') before committing. '+usedBudget+' action'+(usedBudget===1?'':'s')+' used.</div>';
+    else rigor='<div style="margin-top:10px;padding:8px 10px;background:#0a0a08;border-left:3px solid #EF9F27;border-radius:3px;font-size:11px;color:#FAC775">Right answer - but you committed before checking: '+esc(missing.map(k=>labelFor(sc,k)).join(', '))+'. In the field you\'d want that confirmation before acting. '+usedBudget+' action'+(usedBudget===1?'':'s')+' used.</div>';
+  }
+  db.innerHTML='<div class="phr-card" style="background:#1a1a18;border:2px solid '+col+';border-radius:8px;padding:14px;color:#F1EFE8;font-family:monospace">'
+   +'<div style="display:flex;gap:12px;margin-bottom:4px">'
+   +'<img src="'+portraitSrc(sc.debrieferSprite||"staff")+'" style="width:72px;height:72px;image-rendering:pixelated;border:2px solid '+col+';border-radius:4px;flex-shrink:0">'
+   +'<div style="flex:1"><div style="font-size:11px;color:#9C9A92;margin-bottom:2px">'+esc(sc.debriefer)+' weighs in.</div>'
+   +'<div style="font-weight:500;font-size:13px;color:'+col+';margin-bottom:6px">'+lab+'</div>'
+   +'<div style="font-size:12px;line-height:1.6;color:#E1F5EE">'+esc(d.feedback)+'</div></div></div>'
+   +rigor
+   +(d.correct?'<div style="border-top:1px dashed #5F5E5A;padding-top:12px;margin-top:12px"><div style="font-weight:500;font-size:13px;margin-bottom:6px;color:#FCDE5A">PRINCIPLE LEARNED: '+esc(sc.principle.title)+'</div><div style="font-size:12px;line-height:1.6;color:#C2C0B6">'+esc(sc.principle.body)+'</div><div style="font-size:10px;color:#888780;margin-top:8px;font-style:italic">'+esc(sc.principle.cite)+'  ·  saved to Field Notes</div></div>':'')
+   +'<div style="margin-top:14px;display:flex;gap:8px">'
+   +(d.correct?'<button onclick="window.__closeDebrief()" style="background:#2C2C2A;color:#5DCAA5;border:1px solid #5DCAA5;padding:6px 14px;border-radius:3px;font-family:monospace;font-size:12px;cursor:pointer">[ CONTINUE ]</button>':'<button onclick="window.__retrySc()" style="background:#2C2C2A;color:#FCDE5A;border:1px solid #FCDE5A;padding:6px 14px;border-radius:3px;font-family:monospace;font-size:12px;cursor:pointer">[ TRY AGAIN ]</button><button onclick="window.__closeDebrief()" style="background:#2C2C2A;color:#888780;border:1px solid #5F5E5A;padding:6px 14px;border-radius:3px;font-family:monospace;font-size:12px;cursor:pointer">[ WALK AWAY ]</button>')
+   +'</div></div>';
+}
+window.__closeDebrief=function(){ document.getElementById('debrief').style.display='none'; state.inDialog=false; cvs.focus(); if(state.solved>=7&&!completeShown) showComplete(); };
+window.__retrySc=function(){ document.getElementById('debrief').style.display='none'; renderScenario(); };
+
+/* ---------- field notes ---------- */
+const notes=[];
+function addNote(sc,npc){ if(notes.find(n=>n.id===npc.id))return; notes.push({id:npc.id,name:sc.intro.name,course:sc.course,title:sc.principle.title,body:sc.principle.body,cite:sc.principle.cite}); }
+function rebuildNotes(){ notes.length=0; for(const mp in npcs)for(const n of npcs[mp]) if(n.done&&!n.info&&SCENARIOS[n.id]) addNote(SCENARIOS[n.id],n); }
+function notesByCourse(){ rebuildNotes(); const g={}; for(const n of notes){ (g[n.course]=g[n.course]||[]).push(n); } return g; }
+function renderNotesHtml(){
+  const g=notesByCourse();
+  const courseNames={'FNPH 622':'FNPH 622 · Nutrition Across the Lifecycle','PUBH 610':'PUBH 610 · Health Systems, Policy & Management'};
+  let html='';
+  const order=['FNPH 622','PUBH 610'];
+  let any=false;
+  for(const c of order){ const arr=g[c]||[]; if(!arr.length) continue; any=true;
+    html+='<div style="margin-bottom:14px"><div style="color:#9FE1CB;font-size:11px;letter-spacing:1px;border-bottom:1px solid #3C3489;padding-bottom:4px;margin-bottom:8px">'+esc(courseNames[c]||c)+'</div>';
+    for(const n of arr){ html+='<div style="margin-bottom:10px;padding:10px;background:#0a0a08;border-left:3px solid #FCDE5A;border-radius:3px"><div style="color:#FCDE5A;font-size:12px;font-weight:500;margin-bottom:4px">'+esc(n.title)+'</div><div style="color:#C2C0B6;font-size:11px;line-height:1.55">'+esc(n.body)+'</div><div style="color:#888780;font-size:10px;font-style:italic;margin-top:5px">'+esc(n.cite)+'</div></div>'; }
+    html+='</div>';
+  }
+  const lockedCount=7-notes.length;
+  if(lockedCount>0) html+='<div style="color:#5F5E5A;font-size:11px;font-style:italic;text-align:center;padding:8px">'+lockedCount+' principle'+(lockedCount===1?'':'s')+' still to discover - keep playing.</div>';
+  if(!any) html='<div style="color:#888780;font-size:12px;text-align:center;padding:20px">No principles learned yet. Solve a case to start your field notes.</div>';
+  return html;
+}
+function openMenu(){ clearHeld(); SFX.open(); state.inMenu=true; const m=document.getElementById('menu'); m.style.display='block';
+  m.innerHTML='<div class="phr-card" style="background:#1a1a18;border:2px solid #7F77DD;border-radius:8px;padding:16px;font-family:monospace">'
+   +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="color:#FCDE5A;font-size:15px;font-weight:500;letter-spacing:1px">FIELD NOTES</div><div style="color:#9FE1CB;font-size:12px">'+notes.length+' / 7 principles</div></div>'
+   +'<div class="phr-scroll">'+renderNotesHtml()+'</div>'
+   +'<div style="display:flex;justify-content:space-between;gap:8px;margin-top:12px;border-top:1px dashed #5F5E5A;padding-top:12px">'
+   +'<button onclick="window.__closeMenu()" style="background:#3C3489;color:#FCDE5A;border:1px solid #7F77DD;padding:6px 14px;border-radius:3px;font-family:monospace;font-size:12px;cursor:pointer">[ CLOSE ]</button>'
+   +'<button onclick="window.__resetConfirm()" style="background:transparent;color:#993556;border:1px solid #993556;padding:6px 14px;border-radius:3px;font-family:monospace;font-size:11px;cursor:pointer">[ reset progress ]</button>'
+   +'</div></div>';
+}
+window.__closeMenu=function(){ closeMenu(); };
+function closeMenu(){ state.inMenu=false; document.getElementById('menu').style.display='none'; cvs.focus(); }
+window.__resetConfirm=function(){ const m=document.getElementById('menu'); if(m.querySelector('#phr-reset-bar')) return; const bar=document.createElement('div'); bar.id='phr-reset-bar'; bar.innerHTML='<div style="margin-top:10px;padding:10px;background:#0a0a08;border:1px solid #993556;border-radius:4px;color:#F4C0D1;font-size:11px;font-family:monospace">Erase all solved cases and notes? <button onclick="window.__doReset()" style="background:#993556;color:#FFF;border:none;padding:4px 10px;border-radius:3px;margin-left:8px;cursor:pointer;font-family:monospace">YES, RESET</button></div>'; m.querySelector('div').appendChild(bar); };
+window.__doReset=function(){ resetProgress(); };
+document.getElementById('notes-btn').addEventListener('click',()=>{ if(!state.started)return; if(state.inDialog)return; state.inMenu?closeMenu():openMenu(); });
+
+/* ---------- completion ---------- */
+function showComplete(){ completeShown=true; SFX.win(); const c=document.getElementById('complete'); c.style.display='block';
+  c.innerHTML='<div class="phr-card" style="background:#1a1a18;border:2px solid #5DCAA5;border-radius:8px;padding:18px;font-family:monospace;text-align:center">'
+   +'<div style="color:#9FE1CB;font-size:11px;letter-spacing:2px">ROTATION COMPLETE</div>'
+   +'<div style="color:#FCDE5A;font-size:22px;font-weight:500;margin:8px 0;text-shadow:2px 2px 0 #0F6E56">All 7 cases solved</div>'
+   +'<div style="color:#C2C0B6;font-size:12px;line-height:1.6;max-width:420px;margin:0 auto 14px">You\'ve worked the clinic, the school, the senior center, and the street. Here is the full set of principles you carried out of East Harlem:</div>'
+   +'<div class="phr-scroll" style="text-align:left">'+renderNotesHtml()+'</div>'
+   +'<div style="display:flex;justify-content:center;gap:8px;margin-top:8px"><button onclick="window.__closeComplete()" style="background:#3C3489;color:#FCDE5A;border:1px solid #7F77DD;padding:8px 18px;border-radius:4px;font-family:monospace;font-size:12px;cursor:pointer">[ KEEP EXPLORING ]</button></div></div>';
+}
+window.__closeComplete=function(){ completeShown=false; document.getElementById('complete').style.display='none'; cvs.focus(); };
+
+/* ---------- toast / hud / start ---------- */
+function unsolvedIn(mapName){ let c=0; for(const n of (npcs[mapName]||[])) if(!n.info && !n.done) c++; return c; }
+function showLocToast(label){ const t=document.getElementById('loc-toast'); const u=unsolvedIn(state.map); const sub = u>0 ? '<div style="font-size:11px;color:#EF9F27;margin-top:6px">'+u+' case'+(u===1?'':'s')+' to solve here</div>' : '<div style="font-size:11px;color:#1D9E75;margin-top:6px">&check; all clear here</div>'; t.innerHTML='<div style="font-size:10px;color:#9FE1CB;margin-bottom:4px">NOW ENTERING</div>'+label+sub; t.style.display='block'; clearTimeout(window.__lt); window.__lt=setTimeout(()=>{t.style.display='none';},1700); }
+function updateHud(){ document.getElementById('solved').textContent=state.solved; document.getElementById('notes-count').textContent=state.solved; document.getElementById('loc-name').textContent=LOC_LABELS[state.map].replace('EAST HARLEM ','').replace(' - ',' '); const pf=document.getElementById('progress-fill'); if(pf) pf.style.width=Math.round(state.solved/7*100)+'%'; }
+function startGame(){ if(state.started)return; state.started=true; document.getElementById('title-screen').style.display='none'; showLocToast(LOC_LABELS[state.map]); cvs.focus(); }
+document.getElementById('start-btn').addEventListener('click',startGame);
+
+/* ---------- main loop ---------- */
+let lastT=0;
+function loop(t){
+  if(!lastT)lastT=t; const dt=Math.min(50,t-lastT); lastT=t;
+  if(transition.active){
+    transition.t += dt/TRANS_MS;
+    if(transition.t>=1){
+      if(transition.phase==='out'){ state.map=transition.pendMap; state.px=transition.pendX; state.py=transition.pendY; state.renderX=state.px*TILE; state.renderY=state.py*TILE; state.facing=transition.pendFacing; transition.phase='in'; transition.t=0; updateHud(); showLocToast(LOC_LABELS[state.map]); }
+      else { transition.active=false; }
+    }
+  } else if(state.moving){
+    state.moveT += dt/MOVE_MS;
+    if(state.moveT>=1){ state.moveT=1; state.moving=false; }
+    state.renderX = state.fromX+(state.toX-state.fromX)*state.moveT;
+    state.renderY = state.fromY+(state.toY-state.fromY)*state.moveT;
+  } else {
+    state.renderX=state.px*TILE; state.renderY=state.py*TILE;
+    if(canMove()){ const d=heldDir(); if(d) startMove(d); }
+  }
+  render();
+  requestAnimationFrame(loop);
+}
+
+document.getElementById('mute-btn').addEventListener('click',()=>{ ensureAudio(); setMuted(!sndMuted); });
+load(); rebuildNotes(); updateHud(); setMuted(sndMuted);
+const cont=document.getElementById('continue-line'); if(state.solved>0) cont.textContent='Progress found: '+state.solved+'/7 cases solved.';
+render();
+requestAnimationFrame(loop);
+})();
+</script>
