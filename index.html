@@ -1,4 +1,4 @@
-<div id="phr-game" style="font-family:var(--font-sans);max-width:680px;margin:0 auto;color:var(--color-text-primary)">
+<div id="phr-game" style="font-family:var(--font-sans);margin:0 auto;color:var(--color-text-primary)">
 <h2 class="sr-only">Public health teaching RPG: walk a clinic and East Harlem neighborhood, solve seven case scenarios, and collect public health principles in a reviewable field notebook.</h2>
 
 <style>
@@ -27,7 +27,25 @@
   #phr-game #game-wrap::after{ display:none; }
   #phr-game button{ transition:none; }
 }
+#phr-game{ max-width:1060px; }
+#phr-game #stage{ display:flex; gap:14px; align-items:flex-start; }
+#phr-game #game-col{ flex:1 1 560px; min-width:300px; }
+#phr-game #side-col{ flex:1 1 340px; min-width:268px; max-width:430px; }
+#phr-game #companion{ background:linear-gradient(180deg,#16160f,#0d0d09); border:2px solid #3C3489; border-radius:10px; padding:12px; font-family:monospace; }
+#phr-game .inv-pill{ display:inline-flex; align-items:center; gap:4px; background:#0a0a08; border:1px solid #5F5E5A; border-radius:20px; padding:3px 9px; font-size:11px; color:#FCDE5A; }
+#phr-game .inv-pill b{ color:#FFF; }
+#phr-game .phr-scroll-side{ max-height:34vh; overflow-y:auto; overflow-x:hidden; padding-right:4px; }
+#phr-game .phr-scroll-side::-webkit-scrollbar{ width:8px; }
+#phr-game .phr-scroll-side::-webkit-scrollbar-thumb{ background:#3C3489; border-radius:5px; }
+@media (max-width:880px){
+  #phr-game{ max-width:680px; }
+  #phr-game #stage{ flex-direction:column; }
+  #phr-game #side-col{ max-width:none; flex-basis:auto; width:100%; }
+}
 </style>
+
+<div id="stage">
+  <div id="game-col">
 
 <div id="hud" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:linear-gradient(180deg,#2C2C2A 0%,#1a1a18 100%);color:#FCDE5A;border-radius:8px;margin-bottom:8px;font-size:12px;font-family:monospace;border:1px solid #5F5E5A">
   <div style="display:flex;align-items:center;gap:8px;min-width:0"><span style="color:#9FE1CB">LOC</span> <span id="loc-name" style="font-weight:500;color:#FFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">East Harlem Community Health</span></div>
@@ -69,10 +87,16 @@
   </div>
 </div>
 
-<div id="panel" style="display:none;margin-top:12px"></div>
-<div id="debrief" style="display:none;margin-top:12px"></div>
-<div id="menu" style="display:none;margin-top:12px"></div>
-<div id="complete" style="display:none;margin-top:12px"></div>
+</div><!-- /game-col -->
+
+<div id="side-col">
+<div id="companion"></div>
+<div id="panel" style="display:none;margin-top:10px"></div>
+<div id="debrief" style="display:none;margin-top:10px"></div>
+<div id="menu" style="display:none;margin-top:10px"></div>
+<div id="complete" style="display:none;margin-top:10px"></div>
+</div><!-- /side-col -->
+</div><!-- /stage -->
 
 </div>
 
@@ -246,7 +270,7 @@ function buildCenterMap(){
   m[5][2]='K3'; m[ROWS-1][9]='Xc';m[ROWS-1][10]='Xc';
   return m;
 }
-const maps = { clinic:buildClinicMap(), street:buildStreetMap(), school:buildSchoolMap(), center:buildCenterMap() };
+const maps = { clinic:buildClinicMap(), street:buildStreetMap(), school:buildSchoolMap(), center:buildCenterMap(), market:buildMarketMap() };
 
 const npcs = {
   clinic:[
@@ -270,10 +294,10 @@ function getMap(){ return maps[state.map]; }
 function getNpcs(){ return npcs[state.map]; }
 
 /* ---------- persistence (safe) ---------- */
-const SAVE_KEY='harlem_health_rotation_v6';
-function save(){ try{ const ids=[]; for(const mp in npcs)for(const n of npcs[mp]) if(n.done&&!n.info) ids.push(n.id); localStorage.setItem(SAVE_KEY, JSON.stringify({solved:ids})); }catch(e){} }
-function load(){ try{ const r=localStorage.getItem(SAVE_KEY); if(!r)return; const d=JSON.parse(r); const set=new Set(d.solved||[]); let c=0; for(const mp in npcs)for(const n of npcs[mp]) if(set.has(n.id)){ n.done=true; c++; } state.solved=c; }catch(e){} }
-function resetProgress(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} for(const mp in npcs)for(const n of npcs[mp]) n.done=false; state.solved=0; completeShown=false; closeMenu(); updateHud(); render(); }
+const SAVE_KEY='harlem_health_rotation_v8';
+function save(){ try{ const ids=[]; for(const mp in npcs)for(const n of npcs[mp]) if(n.done&&!n.info) ids.push(n.id); localStorage.setItem(SAVE_KEY, JSON.stringify({solved:ids, coins:inv.coins, tickets:inv.tickets, finds:[...inv.finds], best:mini.best, flags:flags})); }catch(e){} }
+function load(){ try{ const r=localStorage.getItem(SAVE_KEY); if(!r)return; const d=JSON.parse(r); const set=new Set(d.solved||[]); let c=0; for(const mp in npcs)for(const n of npcs[mp]) if(set.has(n.id)){ n.done=true; c++; } state.solved=c; inv.coins=d.coins||0; inv.tickets=d.tickets||0; inv.finds=new Set(d.finds||[]); mini.best=d.best||0; if(d.flags) Object.assign(flags,d.flags); }catch(e){} }
+function resetProgress(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} for(const mp in npcs)for(const n of npcs[mp]) n.done=false; state.solved=0; inv.coins=0; inv.tickets=0; inv.finds.clear(); mini.best=0; mini.active=false; mini.pending=false; for(const k in flags) delete flags[k]; completeShown=false; closeMenu(); updateHud(); render(); }
 
 /* ---------- tile rendering (cached per map) ---------- */
 let mapCanvasCache={};
@@ -302,6 +326,7 @@ function drawTileProc(c,x,y,type){
   else if(type==='B'){ c.fillStyle=PAL.bodega;c.fillRect(px,py,TILE,TILE); c.fillStyle=PAL.bodegaShade;c.fillRect(px,py+TILE-4,TILE,4);c.fillRect(px+TILE-3,py,3,TILE); if(y===0){c.fillStyle=PAL.bodegaSign;c.fillRect(px,py+6,TILE,6); if(x===4){c.fillStyle=PAL.bodegaShade;c.font='bold 8px monospace';c.textAlign='center';c.fillText('BODEGA',px+TILE/2,py+11);c.textAlign='start';}} if(y===2){c.fillStyle=PAL.bodegaWindow;c.fillRect(px+4,py+4,TILE-8,TILE-12);c.fillStyle='rgba(255,255,255,0.3)';c.fillRect(px+6,py+6,4,4);} }
   else if(type==='S'){ c.fillStyle=PAL.school;c.fillRect(px,py,TILE,TILE); c.fillStyle=PAL.schoolShade;c.fillRect(px,py+TILE-4,TILE,4);c.fillRect(px+TILE-3,py,3,TILE); if(y===0){c.fillStyle=PAL.schoolSign;c.fillRect(px,py+6,TILE,6); if(x===15){c.fillStyle=PAL.schoolShade;c.font='bold 8px monospace';c.textAlign='center';c.fillText('SCHOOL',px+TILE/2,py+11);c.textAlign='start';}} if(y===2){c.fillStyle=PAL.schoolWindow;c.fillRect(px+4,py+4,TILE-8,TILE-12);c.fillStyle='rgba(255,255,255,0.3)';c.fillRect(px+6,py+6,4,4);} }
   else if(type==='Bus'){ drawFloorBase(c,px,py,PAL.sidewalk,PAL.sidewalkShade); c.fillStyle=PAL.bus;c.fillRect(px+2,py+2,TILE-4,TILE-8); c.fillStyle=PAL.busShade;c.fillRect(px+2,py+TILE-10,TILE-4,2); c.fillStyle=PAL.busSign;c.fillRect(px+6,py+8,TILE-12,8); if(x===10){c.fillStyle=PAL.busShade;c.font='bold 7px monospace';c.textAlign='center';c.fillText('BUS',px+TILE/2,py+14);c.textAlign='start';} c.fillStyle='#2C2C2A';c.fillRect(px+TILE/2-1,py+TILE-8,2,6); }
+  else if(type==='mk'){ drawFloorBase(c,px,py,PAL.grass,PAL.grassShade); if((x+y)%2===0){c.fillStyle=PAL.grassTuft;c.fillRect(px+5,py+6,3,3);c.fillRect(px+15,py+17,3,3);} c.fillStyle='rgba(0,0,0,0.05)';c.fillRect(px,py+TILE-2,TILE,2); }
   else { drawFloorBase(c,px,py,PAL.floor,PAL.floorShade); }
 }
 function getMapCanvas(name){
@@ -364,17 +389,25 @@ function npcBubbleKind(n){ if(n.info) return 'info'; return n.done?'done':'quest
 function render(){
   ctx.clearRect(0,0,cvs.width,cvs.height);
   ctx.drawImage(getMapCanvas(state.map),0,0);
+  const miniOn = state.map==='market' && mini.active;
+  if(miniOn) drawTokens();
   const ents=[];
   for(const n of getNpcs()) ents.push({px:n.x*TILE,py:n.y*TILE,id:n.id,facing:n.facing,stepping:false,bubble:npcBubbleKind(n)});
+  for(const p of getProps()) if(propVisible(p)) ents.push({px:p.x*TILE,py:p.y*TILE,prop:p,bubble:propBubbleKind(p)});
   ents.push({px:state.renderX,py:state.renderY,id:'player',facing:state.facing,stepping:state.moving,bubble:null});
   ents.sort((a,b)=>a.py-b.py);
-  for(const e of ents){ drawSprite(e.px,e.py,e.id,e.facing,e.stepping); if(e.bubble) drawBubble(e.px,e.py,e.bubble); }
-  const fn=facedNpc();
-  if(fn && state.started && !state.moving && !transition.active && !state.inDialog && !state.inMenu){
-    const px=fn.x*TILE, py=fn.y*TILE; const b=Math.sin(Date.now()/250)*1;
-    ctx.fillStyle='rgba(0,0,0,0.75)'; ctx.fillRect(px-4,py-14+b,40,11);
-    ctx.fillStyle='#FCDE5A'; ctx.font='bold 8px monospace'; ctx.textAlign='center'; ctx.fillText('SPACE',px+16,py-6+b); ctx.textAlign='start';
+  for(const e of ents){ if(e.prop) drawProp(e.px,e.py,e.prop); else drawSprite(e.px,e.py,e.id,e.facing,e.stepping); if(e.bubble) drawBubble(e.px,e.py,e.bubble); }
+  if(!miniOn){
+    const fn=facedNpc(); const fp=fn?null:facedProp(); const fb=(fn||fp)?false:facedBusTile();
+    let ht=null;
+    if(fn) ht={x:fn.x,y:fn.y}; else if(fp) ht={x:fp.x,y:fp.y}; else if(fb){ const [dx,dy]=DIRS[state.facing]; ht={x:state.px+dx,y:state.py+dy}; }
+    if(ht && state.started && !state.moving && !transition.active && !state.inDialog && !state.inMenu){
+      const px=ht.x*TILE, py=ht.y*TILE; const b=Math.sin(Date.now()/250)*1;
+      ctx.fillStyle='rgba(0,0,0,0.75)'; ctx.fillRect(px-4,py-14+b,40,11);
+      ctx.fillStyle='#FCDE5A'; ctx.font='bold 8px monospace'; ctx.textAlign='center'; ctx.fillText('SPACE',px+16,py-6+b); ctx.textAlign='start';
+    }
   }
+  if(miniOn) drawMiniUI();
   if(transition.active){ const a = transition.phase==='out'?transition.t:(1-transition.t); ctx.fillStyle='rgba(8,8,6,'+a+')'; ctx.fillRect(0,0,cvs.width,cvs.height); }
   const g=ctx.createRadialGradient(cvs.width/2,cvs.height/2,cvs.height/3,cvs.width/2,cvs.height/2,cvs.height/0.9);
   g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,0.28)');
@@ -387,10 +420,11 @@ function isBlocked(x,y){
   const t=getMap()[y][x];
   if(['W','D','C','c','T','Tb','Lk','Bk','K','K2','K3','B','S','Bus'].includes(t)) return true;
   for(const n of getNpcs()) if(n.x===x&&n.y===y) return true;
+  for(const p of getProps()) if(propVisible(p)&&p.x===x&&p.y===y) return true;
   return false;
 }
 const EXITS={ clinic:{X:['street',9,1,'down']}, street:{X:['clinic',5,ROWS-2,'up'],Xs:['school',9,1,'down'],Xc:['center',9,ROWS-2,'up']}, school:{Xs:['street',15,3,'down']}, center:{Xc:['street',1,ROWS-2,'up']} };
-const LOC_LABELS={ clinic:'EAST HARLEM COMMUNITY HEALTH', street:'116TH ST & LEXINGTON AVE', school:'PS 83 - MIDDLE SCHOOL', center:'EAST HARLEM SENIOR CENTER' };
+const LOC_LABELS={ clinic:'EAST HARLEM COMMUNITY HEALTH', street:'116TH ST & LEXINGTON AVE', school:'PS 83 - MIDDLE SCHOOL', center:'EAST HARLEM SENIOR CENTER', market:'NUTRIENT EXPRESS \u00b7 MARKET DASH' };
 const DIRS={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
 
 function beginTransition(dest){ transition.active=true; transition.phase='out'; transition.t=0; transition.pendMap=dest[0]; transition.pendX=dest[1]; transition.pendY=dest[2]; transition.pendFacing=dest[3]; }
@@ -420,6 +454,7 @@ document.addEventListener('keydown',e=>{
   if(!state.started){ if(k===' '||k==='enter'){ e.preventDefault(); startGame(); } return; }
   // Escape backs out of whatever is open
   if(k==='escape'){
+    if(state.map==='market'&&mini.active){ e.preventDefault(); endMini(); return; }
     if(state.inMenu){ e.preventDefault(); closeMenu(); return; }
     if(completeShown){ e.preventDefault(); window.__closeComplete(); return; }
     if(state.inDialog){
@@ -431,7 +466,7 @@ document.addEventListener('keydown',e=>{
     if(document.getElementById('panel').style.display==='block'){ e.preventDefault(); window.__closeMsg(); return; }
     return;
   }
-  if(k==='n'&&!state.inDialog&&!completeShown){ e.preventDefault(); state.inMenu?closeMenu():openMenu(); return; }
+  if(k==='n'&&!state.inDialog&&!completeShown&&!(state.map==='market'&&mini.active)){ e.preventDefault(); state.inMenu?closeMenu():openMenu(); return; }
   // Number keys commit a diagnosis while a scenario is open (matches the [1]-[4] labels)
   if(state.inDialog && curSc && document.getElementById('debrief').style.display!=='block'){
     const dn=parseInt(k,10);
@@ -463,10 +498,15 @@ if('ontouchstart' in window){
 }
 
 /* ---------- interaction & dialog ---------- */
-function interact(){ if(!canMove())return; const n=facedNpc(); if(!n)return;
-  if(n.info){ showMessage(n.name,n.id,'Nurse Diaz: "Lot going on today. Marisol in the waiting room, Ms. Okafor in the exam room, Sofia is swamped at intake, and Dr. Patel is prepping for a board meeting in the back. The south door leads out to the neighborhood. Pick a fire."'); return; }
-  if(n.done){ showMessage(n.name,n.id,n.name+': "Thanks for your help earlier. I\'m doing better."'); return; }
-  const sc=SCENARIOS[n.id]; if(sc) openScenario(sc,n);
+function interact(){ if(!canMove())return; const n=facedNpc();
+  if(n){
+    if(n.info){ showMessage(n.name,n.id,'Nurse Diaz: "Lot going on today. Marisol in the waiting room, Ms. Okafor in the exam room, Sofia is swamped at intake, and Dr. Patel is prepping for a board meeting in the back. The south door leads out to the neighborhood. Pick a fire."'); return; }
+    if(n.done){ showMessage(n.name,n.id,n.name+': "Thanks for your help earlier. I\'m doing better."'); return; }
+    const sc=SCENARIOS[n.id]; if(sc) openScenario(sc,n);
+    return;
+  }
+  const p=facedProp(); if(p){ handleProp(p); return; }
+  if(facedBusTile()){ boardBusPrompt(); return; }
 }
 function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
@@ -495,7 +535,7 @@ function showMessage(name,id,text){
    +'<img src="'+portraitSrc(id)+'" style="width:88px;height:88px;image-rendering:pixelated;border:2px solid #FCDE5A;border-radius:4px;flex-shrink:0">'
    +'<div style="flex:1;font-size:13px;line-height:1.6">'+esc(text)+'<div style="margin-top:14px"><button onclick="window.__closeMsg()" style="background:#2C2C2A;color:#FCDE5A;border:1px solid #FCDE5A;padding:6px 14px;border-radius:3px;font-family:monospace;cursor:pointer">[ OK ]</button></div></div></div>';
 }
-window.__closeMsg=function(){ document.getElementById('panel').style.display='none'; cvs.focus(); };
+window.__closeMsg=function(){ document.getElementById('panel').style.display='none'; state.inDialog=false; cvs.focus(); };
 
 /* ---------- scenarios ---------- */
 const SCENARIOS={
@@ -610,24 +650,333 @@ window.__closeComplete=function(){ completeShown=false; document.getElementById(
 
 /* ---------- toast / hud / start ---------- */
 function unsolvedIn(mapName){ let c=0; for(const n of (npcs[mapName]||[])) if(!n.info && !n.done) c++; return c; }
-function showLocToast(label){ const t=document.getElementById('loc-toast'); const u=unsolvedIn(state.map); const sub = u>0 ? '<div style="font-size:11px;color:#EF9F27;margin-top:6px">'+u+' case'+(u===1?'':'s')+' to solve here</div>' : '<div style="font-size:11px;color:#1D9E75;margin-top:6px">&check; all clear here</div>'; t.innerHTML='<div style="font-size:10px;color:#9FE1CB;margin-bottom:4px">NOW ENTERING</div>'+label+sub; t.style.display='block'; clearTimeout(window.__lt); window.__lt=setTimeout(()=>{t.style.display='none';},1700); }
-function updateHud(){ document.getElementById('solved').textContent=state.solved; document.getElementById('notes-count').textContent=state.solved; document.getElementById('loc-name').textContent=LOC_LABELS[state.map].replace('EAST HARLEM ','').replace(' - ',' '); const pf=document.getElementById('progress-fill'); if(pf) pf.style.width=Math.round(state.solved/7*100)+'%'; }
+function showLocToast(label){ const t=document.getElementById('loc-toast'); let sub; if(state.map==='market'){ sub='<div style="font-size:11px;color:#9FE1CB;margin-top:6px">Grab fresh food! Pair Fe + C for a bonus.</div>'; } else { const u=unsolvedIn(state.map); sub = u>0 ? '<div style="font-size:11px;color:#EF9F27;margin-top:6px">'+u+' case'+(u===1?'':'s')+' to solve here</div>' : '<div style="font-size:11px;color:#1D9E75;margin-top:6px">&check; all clear here</div>'; } t.innerHTML='<div style="font-size:10px;color:#9FE1CB;margin-bottom:4px">NOW ENTERING</div>'+label+sub; t.style.display='block'; clearTimeout(window.__lt); window.__lt=setTimeout(()=>{t.style.display='none';},1700); }
+function updateHud(){ document.getElementById('solved').textContent=state.solved; document.getElementById('notes-count').textContent=state.solved; document.getElementById('loc-name').textContent=LOC_LABELS[state.map].replace('EAST HARLEM ','').replace(' - ',' '); const pf=document.getElementById('progress-fill'); if(pf) pf.style.width=Math.round(state.solved/7*100)+'%'; updateCompanion(); }
 function startGame(){ if(state.started)return; state.started=true; document.getElementById('title-screen').style.display='none'; showLocToast(LOC_LABELS[state.map]); cvs.focus(); }
 document.getElementById('start-btn').addEventListener('click',startGame);
+
+/* ---------- v8: collectables, side-quests & Nutrient Express minigame ---------- */
+function buildMarketMap(){
+  const m=[]; for(let y=0;y<ROWS;y++){const r=[];for(let x=0;x<COLS;x++){ if(y===0||y===ROWS-1||x===0||x===COLS-1) r.push('W'); else r.push('mk'); }m.push(r);}
+  m[3][4]='Tb'; m[3][5]='Tb'; m[3][14]='Tb'; m[3][15]='Tb';
+  m[8][4]='Tb'; m[8][15]='Tb'; m[5][9]='Tb'; m[5][10]='Tb';
+  m[9][10]='mk';
+  return m;
+}
+
+const FINDS={
+  poster:{icon:'\u{1F4CB}',name:'WIC Welcome Poster'},
+  mural:{icon:'\u{1F3A8}',name:'Community Mural'},
+  locker:{icon:'\u{1F5C2}\uFE0F',name:'Wellness Club Locker'},
+  pantry:{icon:'\u{1F41F}',name:'Pantry Find: Tuna Tin'},
+  cat_charm:{icon:'\u{1F408}',name:"Pickles' Charm"},
+  market_ace:{icon:'\u2728',name:'Absorption Ace'}
+};
+const FINDTOTAL=Object.keys(FINDS).length;
+const flags={};
+const inv={ coins:0, tickets:0, finds:new Set() };
+const TICKET_COST=12, MINI_MS=30000, MINI_TOKENS=6;
+const mini={ active:false, pending:false, time:0, score:0, last:null, tokens:[], flash:null, best:0 };
+
+npcs.market=[];
+
+const props={
+  clinic:[ {x:8,y:1,id:'poster',kind:'info',find:'poster',title:'WIC WELCOME POSTER',
+            text:'A bright poster by the waiting-room chairs reads: "WIC is for working families, students, and new parents. No citizenship check. Walk-ins welcome." Someone has added a hand-drawn smiley in the corner.'} ],
+  street:[ {x:3,y:3,id:'cat',kind:'cat',name:'Pickles'},
+           {x:13,y:4,id:'kiosk',kind:'kiosk'},
+           {x:4,y:11,id:'chest',kind:'chest'},
+           {x:16,y:9,id:'mural',kind:'info',find:'mural',title:'COMMUNITY MURAL',
+            text:'A mural runs the whole wall: neighbors carrying groceries home, a rooftop garden, kids at a stoop, and a little shuttle painted with the words NUTRIENT EXPRESS. Along the bottom, in big letters: "East Harlem feeds East Harlem."'} ],
+  school:[ {x:3,y:5,id:'locker',kind:'info',find:'locker',title:'WELLNESS CLUB LOCKER',
+            text:'An open locker covered in the wellness club\u2019s flyers: "All bodies welcome. No weigh-ins, no before-and-after photos. You are not a before-photo." A tin of granola bars sits on the shelf, free for anyone who needs a snack.'} ],
+  center:[ {x:2,y:2,id:'pantry',kind:'pantry'} ],
+  market:[]
+};
+
+function getProps(){ return props[state.map]||[]; }
+function propVisible(p){ if(p.kind==='chest') return !!flags.catRevealed; return true; }
+function propDone(p){
+  if(p.kind==='info') return inv.finds.has(p.find);
+  if(p.kind==='pantry') return !!(flags.hasTuna||flags.catFed);
+  if(p.kind==='cat') return !!flags.catFed;
+  if(p.kind==='chest') return !!flags.chestOpened;
+  return false;
+}
+function propBubbleKind(p){
+  if(p.kind==='cat') return flags.catFed?'done':'quest';
+  if(p.kind==='chest') return flags.chestOpened?'done':'quest';
+  if(p.kind==='kiosk') return 'info';
+  return propDone(p)?null:'info';
+}
+
+function drawProp(px,py,p){
+  if(p.kind==='cat'){
+    ctx.fillStyle=PAL.shadow; ctx.beginPath(); ctx.ellipse(px+16,py+27,9,3,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#D8862F'; ctx.fillRect(px+9,py+13,14,12);
+    ctx.fillStyle='#B86A1E'; ctx.fillRect(px+9,py+22,14,3);
+    ctx.fillStyle='#B86A1E'; ctx.fillRect(px+11,py+13,2,9); ctx.fillRect(px+16,py+13,2,9);
+    ctx.fillStyle='#D8862F'; ctx.fillRect(px+19,py+8,9,9);
+    ctx.fillStyle='#B86A1E'; ctx.fillRect(px+19,py+5,3,4); ctx.fillRect(px+25,py+5,3,4);
+    ctx.fillStyle='#2C2C2A'; ctx.fillRect(px+21,py+11,2,2); ctx.fillRect(px+25,py+11,2,2);
+    ctx.fillStyle='#D4537E'; ctx.fillRect(px+23,py+14,2,1);
+    ctx.fillStyle='#D8862F'; ctx.fillRect(px+22,py+19,8,3);
+    if(flags.catFed){ const bob=Math.sin(Date.now()/300)*1.5; ctx.fillStyle='#D4537E'; ctx.font='9px monospace'; ctx.textAlign='center'; ctx.fillText('\u2665',px+6,py+6+bob); ctx.textAlign='start'; }
+  } else if(p.kind==='kiosk'){
+    ctx.fillStyle=PAL.shadow; ctx.fillRect(px+4,py+26,24,3);
+    ctx.fillStyle='#3C3489'; ctx.fillRect(px+4,py+7,24,19);
+    ctx.fillStyle='#7F77DD'; ctx.fillRect(px+3,py+5,26,4);
+    ctx.fillStyle='#0a0a08'; ctx.fillRect(px+8,py+17,16,8);
+    ctx.fillStyle='#9FE1CB'; ctx.fillRect(px+9,py+18,14,2);
+    ctx.fillStyle='#FCDE5A'; ctx.font='bold 7px monospace'; ctx.textAlign='center'; ctx.fillText('TOKENS',px+16,py+14); ctx.textAlign='start';
+  } else if(p.kind==='chest'){
+    const open=!!flags.chestOpened;
+    ctx.fillStyle=PAL.shadow; ctx.beginPath(); ctx.ellipse(px+16,py+26,10,3,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#7A5F40'; ctx.fillRect(px+7,py+14,18,11);
+    ctx.fillStyle='#5A4530'; ctx.fillRect(px+7,py+22,18,3);
+    if(open){ ctx.fillStyle='#A88862'; ctx.fillRect(px+7,py+7,18,4); ctx.fillStyle='#FCDE5A'; ctx.fillRect(px+12,py+15,8,5); }
+    else { ctx.fillStyle='#A88862'; ctx.fillRect(px+7,py+10,18,6); ctx.fillStyle='#5A4530'; ctx.fillRect(px+7,py+15,18,1); ctx.fillStyle='#FCDE5A'; ctx.fillRect(px+15,py+16,2,4); }
+  } else if(p.kind==='pantry'){
+    const taken=!!(flags.hasTuna||flags.catFed);
+    ctx.fillStyle='#888780'; ctx.fillRect(px+5,py+4,22,22);
+    ctx.fillStyle='#A09D90'; ctx.fillRect(px+5,py+4,22,3);
+    ctx.fillStyle='#5F5E5A'; ctx.fillRect(px+5,py+13,22,2); ctx.fillRect(px+5,py+21,22,2);
+    ctx.fillStyle='#D85A30'; ctx.fillRect(px+8,py+8,4,4); ctx.fillStyle='#1D9E75'; ctx.fillRect(px+14,py+8,4,4);
+    if(!taken){ ctx.fillStyle='#85B7EB'; ctx.fillRect(px+20,py+8,4,4); }
+    ctx.fillStyle='#378ADD'; ctx.fillRect(px+8,py+16,4,4); ctx.fillStyle='#FCDE5A'; ctx.fillRect(px+14,py+16,4,4); ctx.fillStyle='#D4537E'; ctx.fillRect(px+20,py+16,4,4);
+  } else { /* info marker */
+    if(!inv.finds.has(p.find)){
+      const bob=Math.sin(Date.now()/300)*1.5;
+      ctx.fillStyle='#185FA5'; ctx.font='bold 16px monospace'; ctx.textAlign='center'; ctx.fillText('\u2756',px+16,py+19+bob);
+      ctx.fillStyle='#9FE1CB'; ctx.font='bold 8px monospace'; ctx.fillText('\u2756',px+16,py+18+bob); ctx.textAlign='start';
+    } else {
+      ctx.fillStyle='#5F5E5A'; ctx.font='10px monospace'; ctx.textAlign='center'; ctx.fillText('\u2713',px+16,py+18); ctx.textAlign='start';
+    }
+  }
+}
+
+function facedProp(){ const [dx,dy]=DIRS[state.facing]; const fx=state.px+dx, fy=state.py+dy; for(const p of getProps()) if(propVisible(p)&&p.x===fx&&p.y===fy) return p; return null; }
+function facedBusTile(){ if(state.map!=='street') return false; const [dx,dy]=DIRS[state.facing]; const fx=state.px+dx, fy=state.py+dy; const row=getMap()[fy]; return !!row && row[fx]==='Bus'; }
+
+function addFind(id){ if(inv.finds.has(id)) return false; inv.finds.add(id); SFX.note(); updateHud(); save(); return true; }
+
+function handleProp(p){
+  if(p.kind==='info'){
+    const fresh=addFind(p.find);
+    showMessage(p.title,'staff', p.text + (fresh?'  [ \u2756 Added to your discoveries. ]':'') );
+  } else if(p.kind==='pantry'){
+    if(flags.catFed||flags.hasTuna){
+      showMessage('COMMUNITY PANTRY','staff','The pantry shelves are stocked with beans, rice, and canned goods, free for anyone who needs them. You already grabbed the tuna tin for Pickles.');
+    } else {
+      flags.hasTuna=true; addFind('pantry');
+      showMessage('COMMUNITY PANTRY','staff','Shelves of free food for the neighborhood \u2014 a volunteer waves you in: "Take what you need." Tucked among the cans is a tin of tuna. Perfect for a certain hungry cat back on the street.  [ Got: tuna tin. ]');
+      save();
+    }
+  } else if(p.kind==='cat'){
+    if(flags.catFed){
+      showMessage('PICKLES','staff','Pickles the bodega cat purrs and flops over for a belly rub. The loose floorboard by the stoop is still pried open where she led you.');
+    } else if(flags.hasTuna){
+      flags.catFed=true; flags.catRevealed=true; SFX.right(); addFind('cat_charm');
+      showMessage('PICKLES','staff','You set down the tuna. Pickles devours it, headbutts your shin in thanks, then trots to a loose floorboard by the stoop and paws at it until it pops open \u2014 there\u2019s something stashed underneath!  [ Got: Pickles\u2019 Charm. A hidden stash has been revealed nearby. ]');
+      save();
+    } else {
+      showMessage('PICKLES','staff','A scruffy orange cat eyes you from the bodega stoop, then meows at her empty bowl \u2014 loudly, pointedly. She\u2019s hungry. Maybe there\u2019s some cat food at a neighborhood food pantry.');
+    }
+  } else if(p.kind==='chest'){
+    if(flags.chestOpened){
+      showMessage('LOOSE FLOORBOARD','staff','Just an empty space under the board now \u2014 Pickles\u2019 old hiding spot.');
+    } else {
+      flags.chestOpened=true; inv.tickets+=1; SFX.win();
+      showMessage('LOOSE FLOORBOARD','staff','Under the board: a tin of coins and a single token for the Nutrient Express, the little market shuttle. A taped note reads, "First ride\u2019s on Pickles."  [ Got: 1 bus token. Catch the bus out on the road! ]');
+      updateHud(); save();
+    }
+  } else if(p.kind==='kiosk'){
+    openKiosk();
+  }
+}
+
+function panelButtons(title,bodyHtml,buttons){
+  SFX.open(); state.inDialog=true; curSc=null;
+  const p=document.getElementById('panel'); p.style.display='block';
+  const btns=buttons.map(b=>'<button onclick="'+b.action+'" '+(b.disabled?'disabled':'')
+    +' style="margin:6px 8px 0 0;background:'+(b.disabled?'#1a1a18':(b.primary?'#3C3489':'#2C2C2A'))+';color:'+(b.disabled?'#5F5E5A':'#FCDE5A')
+    +';border:1px solid '+(b.disabled?'#2C2C2A':'#FCDE5A')+';padding:7px 14px;border-radius:3px;font-family:monospace;font-size:12px;cursor:'+(b.disabled?'not-allowed':'pointer')+'">'+esc(b.label)+'</button>').join('');
+  p.innerHTML='<div class="phr-card" style="background:#1a1a18;border:2px solid #FCDE5A;border-radius:8px;padding:14px;color:#F1EFE8;font-family:monospace">'
+    +'<div style="color:#9FE1CB;font-size:11px;letter-spacing:2px;margin-bottom:8px">'+esc(title)+'</div>'
+    +'<div style="font-size:13px;line-height:1.6">'+bodyHtml+'</div>'
+    +'<div style="margin-top:10px">'+btns+'</div></div>';
+}
+
+function boardBusPrompt(){
+  if(inv.tickets<=0){
+    showMessage('NUTRIENT EXPRESS','staff','The shuttle driver leans out the window: "Need a token to ride, friend. Pickles the bodega cat hands out the first one if you feed her \u2014 after that, you can pick up tokens at the kiosk with coins you earn on the route."');
+    return;
+  }
+  panelButtons('NUTRIENT EXPRESS',
+    'Board the market shuttle? It\u2019s a timed fresh-food dash \u2014 grab produce, and pair iron-rich foods (Fe) with vitamin C (C) for a big absorption bonus. You have <b>'+inv.tickets+'</b> token'+(inv.tickets===1?'':'s')+'.',
+    [{label:'[ Board (1 token) ]',action:'window.__boardBus()',primary:true},
+     {label:'[ Not now ]',action:'window.__cancelSc()'}]);
+}
+window.__boardBus=function(){
+  if(inv.tickets<=0){ window.__cancelSc(); return; }
+  inv.tickets-=1; SFX.blip();
+  document.getElementById('panel').style.display='none'; state.inDialog=false;
+  mini.pending=true; updateHud();
+  beginTransition(['market',10,9,'up']);
+};
+
+function openKiosk(){
+  const can=inv.coins>=TICKET_COST;
+  panelButtons('TOKEN KIOSK',
+    'Trade coins earned on the route for bus tokens. <b>'+TICKET_COST+'</b> coins = 1 token.<br>You have <b>'+inv.coins+'</b> coins and <b>'+inv.tickets+'</b> token'+(inv.tickets===1?'':'s')+'.',
+    [{label:'[ Buy token ('+TICKET_COST+') ]',action:'window.__buyTicket()',primary:true,disabled:!can},
+     {label:'[ Done ]',action:'window.__cancelSc()'}]);
+}
+window.__buyTicket=function(){
+  if(inv.coins<TICKET_COST) return;
+  inv.coins-=TICKET_COST; inv.tickets+=1; SFX.note(); updateHud(); save();
+  openKiosk();
+};
+
+const TOKCOL={
+  iron:{glyph:'Fe',ring:'#993556',fill:'#D4537E'},
+  vitc:{glyph:'C',ring:'#993C1D',fill:'#EF9F27'},
+  water:{glyph:'H\u2082O',ring:'#0C447C',fill:'#378ADD'},
+  tannin:{glyph:'\u2615',ring:'#5A4530',fill:'#7A5F40'}
+};
+const TOK_WEIGHTS=['iron','iron','vitc','vitc','water','tannin'];
+
+function freeMarketTile(){
+  const map=maps.market;
+  for(let tries=0;tries<80;tries++){
+    const x=1+Math.floor(Math.random()*(COLS-2)), y=1+Math.floor(Math.random()*(ROWS-2));
+    if(map[y][x]!=='mk') continue;
+    if(x===state.px&&y===state.py) continue;
+    if(mini.tokens.some(t=>t.x===x&&t.y===y)) continue;
+    return {x,y};
+  }
+  return null;
+}
+function spawnToken(){
+  const pos=freeMarketTile(); if(!pos) return;
+  const type=TOK_WEIGHTS[Math.floor(Math.random()*TOK_WEIGHTS.length)];
+  mini.tokens.push({x:pos.x,y:pos.y,type});
+}
+function startMini(){
+  mini.active=true; mini.score=0; mini.time=MINI_MS; mini.last=null; mini.flash=null; mini.tokens=[];
+  for(let i=0;i<MINI_TOKENS;i++) spawnToken();
+  updateHud();
+}
+function setFlash(text,color){ mini.flash={text:text,color:color,t:1200}; }
+function scoreToken(type){
+  if(type==='iron'){ mini.score+=1; mini.last='iron'; SFX.blip(); setFlash('Iron (Fe) +1 \u2014 now grab vitamin C!','#D4537E'); }
+  else if(type==='vitc'){
+    if(mini.last==='iron'){ mini.score+=3; mini.last=null; SFX.right(); setFlash('Vitamin C after iron! +3 absorption bonus','#1D9E75'); }
+    else { mini.score+=1; mini.last=null; SFX.blip(); setFlash('Vitamin C +1','#EF9F27'); }
+  }
+  else if(type==='water'){ mini.score+=1; mini.last=null; SFX.blip(); setFlash('Hydration +1','#378ADD'); }
+  else { /* tannin */
+    if(mini.last==='iron'){ mini.last=null; SFX.wrong(); setFlash('Tannins blunt iron \u2014 pair iron with citrus instead','#EF9F27'); }
+    else { SFX.wrong(); setFlash('Tannins are best kept away from iron-rich meals','#888780'); }
+  }
+}
+function collectAt(x,y){
+  const i=mini.tokens.findIndex(t=>t.x===x&&t.y===y);
+  if(i<0) return;
+  const tok=mini.tokens[i]; mini.tokens.splice(i,1);
+  scoreToken(tok.type); spawnToken();
+}
+function endMini(){
+  if(!mini.active) return;
+  mini.active=false;
+  const score=mini.score;
+  inv.coins+=score;
+  let aceMsg='';
+  if(score>=20 && !inv.finds.has('market_ace')){ inv.finds.add('market_ace'); aceMsg=' <span style="color:#FCDE5A">You earned the Absorption Ace badge!</span>'; }
+  if(score>mini.best) mini.best=score;
+  SFX.win(); save(); updateHud();
+  beginTransition(['street',11,5,'down']);
+  panelButtons('MARKET DASH \u2014 RESULTS',
+    'You scored <b>'+score+'</b> and earned <b>'+score+'</b> coins (best: <b>'+mini.best+'</b>).<br><span style="color:#9FE1CB">Iron absorbs much better alongside vitamin C \u2014 citrus, peppers, tomatoes \u2014 which is why that pairing scored the bonus. Tea and coffee contain tannins that blunt iron uptake, so the route rewards keeping them apart.</span>'+aceMsg,
+    [{label:'[ Back to the street ]',action:'window.__closeMsg()',primary:true}]);
+}
+
+function drawTokens(){
+  for(const t of mini.tokens){
+    const px=t.x*TILE, py=t.y*TILE; const c=TOKCOL[t.type]; const bob=Math.sin(Date.now()/240+(t.x+t.y))*1.5;
+    ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(px+16,py+26,7,2.5,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=c.ring; ctx.beginPath(); ctx.arc(px+16,py+14+bob,10,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=c.fill; ctx.beginPath(); ctx.arc(px+16,py+14+bob,8,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#1a1a18'; ctx.font='bold 8px monospace'; ctx.textAlign='center'; ctx.fillText(c.glyph,px+16,py+17+bob); ctx.textAlign='start';
+  }
+}
+function drawMiniUI(){
+  ctx.fillStyle='rgba(8,8,6,0.82)'; ctx.fillRect(0,0,cvs.width,30);
+  ctx.fillStyle='#FCDE5A'; ctx.font='bold 13px monospace'; ctx.textAlign='left'; ctx.fillText('SCORE '+mini.score,12,20);
+  const secs=Math.max(0,Math.ceil(mini.time/1000));
+  ctx.textAlign='right'; ctx.fillStyle=secs<=5?'#D4537E':'#9FE1CB'; ctx.fillText('TIME '+secs+'s',cvs.width-12,20);
+  ctx.textAlign='center'; ctx.fillStyle='#C2C0B6'; ctx.font='9px monospace'; ctx.fillText('Pair Fe \u2192 C for +3  \u00b7  ESC to leave',cvs.width/2,20); ctx.textAlign='start';
+  if(mini.flash && mini.flash.t>0){
+    const a=Math.min(1,mini.flash.t/400);
+    ctx.globalAlpha=a; ctx.fillStyle='rgba(8,8,6,0.85)'; ctx.fillRect(cvs.width/2-160,cvs.height-46,320,26);
+    ctx.fillStyle=mini.flash.color||'#FCDE5A'; ctx.font='bold 11px monospace'; ctx.textAlign='center'; ctx.fillText(mini.flash.text,cvs.width/2,cvs.height-28); ctx.textAlign='start'; ctx.globalAlpha=1;
+  }
+}
+
+function currentObjectives(){
+  const obj=[]; const remaining=7-state.solved;
+  if(remaining>0) obj.push({done:false,text:'Solve '+remaining+' more case'+(remaining===1?'':'s')+' across the neighborhood'});
+  else obj.push({done:true,text:'All 7 cases solved \u2014 nice work'});
+  if(!flags.catFed){
+    if(!flags.hasTuna) obj.push({done:false,text:'Pickles the bodega cat is hungry \u2014 find cat food (try a food pantry)'});
+    else obj.push({done:false,text:'Bring the tuna tin to Pickles on the street'});
+  } else if(!flags.chestOpened){
+    obj.push({done:false,text:'Open the stash Pickles revealed by the stoop'});
+  } else {
+    obj.push({done:true,text:'Befriended Pickles & found her stash'});
+  }
+  if(inv.tickets>0) obj.push({done:false,text:'Ride the Nutrient Express \u2014 board the bus on the road'});
+  else if(flags.chestOpened) obj.push({done:false,text:'Earn coins on the route, buy tokens at the kiosk'});
+  return obj;
+}
+function updateCompanion(){
+  const el=document.getElementById('companion'); if(!el) return;
+  if(!state.started){
+    el.innerHTML='<div style="color:#9FE1CB;font-size:11px;letter-spacing:2px;margin-bottom:8px">FIELD COMPANION</div>'
+      +'<div style="color:#C2C0B6;font-size:12px;line-height:1.6">Press <b style="color:#FCDE5A">SPACE</b> to begin your rotation. Your objectives, discoveries, and bus tokens will appear here as you explore the neighborhood.</div>';
+    return;
+  }
+  const pills='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">'
+    +'<span class="inv-pill">\u{1FA99} <b>'+inv.coins+'</b> coins</span>'
+    +'<span class="inv-pill">\u{1F39F}\uFE0F <b>'+inv.tickets+'</b> tokens</span>'
+    +'<span class="inv-pill">\u2756 <b>'+inv.finds.size+'</b>/'+FINDTOTAL+' finds</span>'
+    +'<span class="inv-pill">\u2713 <b>'+state.solved+'</b>/7 cases</span></div>';
+  const objs=currentObjectives().map(o=>'<div style="font-size:12px;line-height:1.5;margin-bottom:3px;color:'+(o.done?'#1D9E75':'#F1EFE8')+'">'+(o.done?'&check; ':'&middot; ')+esc(o.text)+'</div>').join('');
+  let finds='';
+  if(inv.finds.size>0){
+    finds='<div style="color:#9FE1CB;font-size:10px;letter-spacing:1px;margin:10px 0 4px">DISCOVERIES</div>';
+    for(const id of inv.finds){ const f=FINDS[id]; if(f) finds+='<div style="font-size:11px;color:#C2C0B6;margin-bottom:2px">'+f.icon+' '+esc(f.name)+'</div>'; }
+  }
+  el.innerHTML='<div style="color:#9FE1CB;font-size:11px;letter-spacing:2px;margin-bottom:8px">FIELD COMPANION</div>'
+    +pills
+    +'<div style="color:#9FE1CB;font-size:10px;letter-spacing:1px;margin-bottom:4px">OBJECTIVES</div>'
+    +'<div class="phr-scroll-side">'+objs+finds+'</div>';
+}
 
 /* ---------- main loop ---------- */
 let lastT=0;
 function loop(t){
   if(!lastT)lastT=t; const dt=Math.min(50,t-lastT); lastT=t;
+  if(mini.active && state.map==='market' && !transition.active){ mini.time -= dt; if(mini.flash) mini.flash.t -= dt; if(mini.time<=0) endMini(); }
   if(transition.active){
     transition.t += dt/TRANS_MS;
     if(transition.t>=1){
-      if(transition.phase==='out'){ state.map=transition.pendMap; state.px=transition.pendX; state.py=transition.pendY; state.renderX=state.px*TILE; state.renderY=state.py*TILE; state.facing=transition.pendFacing; transition.phase='in'; transition.t=0; updateHud(); showLocToast(LOC_LABELS[state.map]); }
+      if(transition.phase==='out'){ state.map=transition.pendMap; state.px=transition.pendX; state.py=transition.pendY; state.renderX=state.px*TILE; state.renderY=state.py*TILE; state.facing=transition.pendFacing; transition.phase='in'; transition.t=0; updateHud(); showLocToast(LOC_LABELS[state.map]); if(state.map==='market'&&mini.pending){ mini.pending=false; startMini(); } }
       else { transition.active=false; }
     }
   } else if(state.moving){
     state.moveT += dt/MOVE_MS;
-    if(state.moveT>=1){ state.moveT=1; state.moving=false; }
+    if(state.moveT>=1){ state.moveT=1; state.moving=false; if(state.map==='market'&&mini.active) collectAt(state.px,state.py); }
     state.renderX = state.fromX+(state.toX-state.fromX)*state.moveT;
     state.renderY = state.fromY+(state.toY-state.fromY)*state.moveT;
   } else {
