@@ -253,7 +253,7 @@ function buildStreetMap(){
   const m=[]; for(let y=0;y<ROWS;y++){const r=[];for(let x=0;x<COLS;x++){ if(y<3)r.push('s'); else if(y<5)r.push('p'); else if(y<8)r.push('r'); else if(y<10)r.push('p'); else r.push('g'); }m.push(r);}
   for(let x=2;x<7;x++){m[0][x]='B';m[1][x]='B';m[2][x]='B';}
   for(let x=13;x<18;x++){m[0][x]='S';m[1][x]='S';m[2][x]='S';}
-  m[4][10]='Bus';m[4][11]='Bus'; m[0][9]='X';m[0][10]='X'; m[2][15]='Xs';m[2][16]='Xs'; m[ROWS-1][1]='Xc';m[ROWS-1][2]='Xc';
+  m[4][10]='Bus';m[4][11]='Bus'; m[0][9]='X';m[0][10]='X'; m[2][15]='Xs';m[2][16]='Xs'; m[ROWS-1][1]='Xc';m[ROWS-1][2]='Xc'; m[2][4]='Db';
   return m;
 }
 function buildSchoolMap(){
@@ -327,6 +327,11 @@ function drawTileProc(c,x,y,type){
   else if(type==='S'){ c.fillStyle=PAL.school;c.fillRect(px,py,TILE,TILE); c.fillStyle=PAL.schoolShade;c.fillRect(px,py+TILE-4,TILE,4);c.fillRect(px+TILE-3,py,3,TILE); if(y===0){c.fillStyle=PAL.schoolSign;c.fillRect(px,py+6,TILE,6); if(x===15){c.fillStyle=PAL.schoolShade;c.font='bold 8px monospace';c.textAlign='center';c.fillText('SCHOOL',px+TILE/2,py+11);c.textAlign='start';}} if(y===2){c.fillStyle=PAL.schoolWindow;c.fillRect(px+4,py+4,TILE-8,TILE-12);c.fillStyle='rgba(255,255,255,0.3)';c.fillRect(px+6,py+6,4,4);} }
   else if(type==='Bus'){ drawFloorBase(c,px,py,PAL.sidewalk,PAL.sidewalkShade); c.fillStyle=PAL.bus;c.fillRect(px+2,py+2,TILE-4,TILE-8); c.fillStyle=PAL.busShade;c.fillRect(px+2,py+TILE-10,TILE-4,2); c.fillStyle=PAL.busSign;c.fillRect(px+6,py+8,TILE-12,8); if(x===10){c.fillStyle=PAL.busShade;c.font='bold 7px monospace';c.textAlign='center';c.fillText('BUS',px+TILE/2,py+14);c.textAlign='start';} c.fillStyle='#2C2C2A';c.fillRect(px+TILE/2-1,py+TILE-8,2,6); }
   else if(type==='mk'){ drawFloorBase(c,px,py,PAL.grass,PAL.grassShade); if((x+y)%2===0){c.fillStyle=PAL.grassTuft;c.fillRect(px+5,py+6,3,3);c.fillRect(px+15,py+17,3,3);} c.fillStyle='rgba(0,0,0,0.05)';c.fillRect(px,py+TILE-2,TILE,2); }
+  else if(type==='bf'){ const a=(x+y)%2===0; c.fillStyle=a?'#EAD9B0':'#E0CC9E';c.fillRect(px,py,TILE,TILE); c.fillStyle='rgba(0,0,0,0.06)';c.fillRect(px,py+TILE-1,TILE,1);c.fillRect(px+TILE-1,py,1,TILE); }
+  else if(type==='sh'){ c.fillStyle='#8A6A45';c.fillRect(px,py,TILE,TILE); c.fillStyle='#A9855A';c.fillRect(px,py,TILE,3); c.fillStyle='#5A4530';c.fillRect(px,py+TILE-4,TILE,4);c.fillRect(px,py+10,TILE,2);c.fillRect(px,py+20,TILE,2); const cl=['#D85A30','#1D9E75','#378ADD','#FCDE5A','#D4537E','#BA7517']; for(let i=0;i<3;i++){ c.fillStyle=cl[(x*3+y+i)%cl.length];c.fillRect(px+3+i*9,py+4,6,5); c.fillStyle=cl[(x*5+y+i+2)%cl.length];c.fillRect(px+3+i*9,py+14,6,5); } }
+  else if(type==='co'){ c.fillStyle='#A88862';c.fillRect(px,py,TILE,TILE); c.fillStyle='#C9A37A';c.fillRect(px,py,TILE,4); c.fillStyle='#7A5F40';c.fillRect(px,py+TILE-5,TILE,5); c.fillStyle='#2C2C2A';c.fillRect(px+10,py+9,12,9); c.fillStyle='#9FE1CB';c.fillRect(px+12,py+11,8,3); }
+  else if(type==='Db'){ c.fillStyle=PAL.bodega;c.fillRect(px,py,TILE,TILE); c.fillStyle=PAL.bodegaShade;c.fillRect(px,py+TILE-4,TILE,4); c.fillStyle='#2C2C2A';c.fillRect(px+7,py+5,18,TILE-5); c.fillStyle=PAL.bodegaWindow;c.fillRect(px+9,py+8,14,11); c.fillStyle=PAL.bodegaSign;c.font='bold 7px monospace';c.textAlign='center';c.fillText('OPEN',px+TILE/2,py+27);c.textAlign='start'; }
+  else if(type==='Xb'){ const a=(x+y)%2===0; c.fillStyle=a?'#EAD9B0':'#E0CC9E';c.fillRect(px,py,TILE,TILE); c.fillStyle=PAL.door;c.fillRect(px+2,py+2,TILE-4,TILE-4); c.fillStyle=PAL.doorShade;c.fillRect(px+2,py+TILE-6,TILE-4,4); c.fillStyle=PAL.doorArrow;c.font='bold 7px monospace';c.textAlign='center';c.fillText('OUT',px+TILE/2,py+TILE/2+2);c.textAlign='start'; }
   else { drawFloorBase(c,px,py,PAL.floor,PAL.floorShade); }
 }
 function getMapCanvas(name){
@@ -418,7 +423,7 @@ function render(){
 function isBlocked(x,y){
   if(x<0||y<0||x>=COLS||y>=ROWS) return true;
   const t=getMap()[y][x];
-  if(['W','D','C','c','T','Tb','Lk','Bk','K','K2','K3','B','S','Bus'].includes(t)) return true;
+  if(['W','D','C','c','T','Tb','Lk','Bk','K','K2','K3','B','S','Bus','sh','co'].includes(t)) return true;
   for(const n of getNpcs()) if(n.x===x&&n.y===y) return true;
   for(const p of getProps()) if(propVisible(p)&&p.x===x&&p.y===y) return true;
   return false;
@@ -670,6 +675,11 @@ const FINDS={
   locker:{icon:'\u{1F5C2}\uFE0F',name:'Wellness Club Locker'},
   pantry:{icon:'\u{1F41F}',name:'Pantry Find: Tuna Tin'},
   cat_charm:{icon:'\u{1F408}',name:"Pickles' Charm"},
+  note:{icon:'\u{1F4DD}',name:'Exam-Room Reminder Card'},
+  pin:{icon:'\u{1F4CC}',name:'Volunteer Pin'},
+  bookmark:{icon:'\u{1F516}',name:'Library Bookmark'},
+  domino:{icon:'\u{1F004}',name:"Mr. Chen's Lucky Tile"},
+  wic_sign:{icon:'\u{1FAA7}',name:'Bodega EBT/WIC Sign'},
   market_ace:{icon:'\u2728',name:'Absorption Ace'}
 };
 const FINDTOTAL=Object.keys(FINDS).length;
@@ -682,16 +692,24 @@ npcs.market=[];
 
 const props={
   clinic:[ {x:8,y:1,id:'poster',kind:'info',find:'poster',title:'WIC WELCOME POSTER',
-            text:'A bright poster by the waiting-room chairs reads: "WIC is for working families, students, and new parents. No citizenship check. Walk-ins welcome." Someone has added a hand-drawn smiley in the corner.'} ],
-  street:[ {x:3,y:3,id:'cat',kind:'cat',name:'Pickles'},
-           {x:13,y:4,id:'kiosk',kind:'kiosk'},
-           {x:4,y:11,id:'chest',kind:'chest'},
+            text:'A bright poster by the waiting-room chairs reads: "WIC is for working families, students, and new parents. No citizenship check. Walk-ins welcome." Someone has added a hand-drawn smiley in the corner.'},
+            {x:1,y:3,id:'badge_drawer',kind:'search',has:'hasBadge',title:'FILING DRAWER',take:'You slide open a sticky filing drawer behind the intake desk. Wedged behind a stack of forms is a staff ID badge \u2014 "Dr. A. Patel, Clinic Director." She must have been hunting for this. Better get it back to her.',empty:'Just intake forms and a box of pens now.'},
+            {x:17,y:5,id:'exam_drawer',kind:'search',findReward:'note',title:'SUPPLY DRAWER',take:'In the exam-room supply drawer is a hand-written reminder card a nurse left for herself: "Mrs. Alvarez \u2014 call about her recheck, bring the grandkids\u2019 records. She worries; be kind." A small window into the work behind the work.',empty:'Gauze, gloves, and tongue depressors.'},
+            {x:16,y:8,id:'badge_return',kind:'deliver',need:'hasBadge',done:'badgeReturned',reward:'pin',title:"DR. PATEL'S OFFICE",ask:'A note taped to the office door: "If found \u2014 my ID badge! Can\u2019t badge into the board room without it. \u2014 Dr. P." You\u2019d have to track it down first.',give:'You hand Dr. Patel her missing badge. "Oh thank goodness \u2014 the board meeting\u2019s in ten minutes!" She pins a little volunteer pin to your collar. "You\u2019ve got a good eye. We could use you around here."',doneText:'Dr. Patel waves, badge safely clipped to her lanyard. "Saved my morning."'} ],
+  street:[ {x:13,y:4,id:'kiosk',kind:'kiosk'},
            {x:16,y:9,id:'mural',kind:'info',find:'mural',title:'COMMUNITY MURAL',
             text:'A mural runs the whole wall: neighbors carrying groceries home, a rooftop garden, kids at a stoop, and a little shuttle painted with the words NUTRIENT EXPRESS. Along the bottom, in big letters: "East Harlem feeds East Harlem."'} ],
   school:[ {x:3,y:5,id:'locker',kind:'info',find:'locker',title:'WELLNESS CLUB LOCKER',
-            text:'An open locker covered in the wellness club\u2019s flyers: "All bodies welcome. No weigh-ins, no before-and-after photos. You are not a before-photo." A tin of granola bars sits on the shelf, free for anyone who needs a snack.'} ],
-  center:[ {x:2,y:2,id:'pantry',kind:'pantry'} ],
-  market:[]
+            text:'An open locker covered in the wellness club\u2019s flyers: "All bodies welcome. No weigh-ins, no before-and-after photos. You are not a before-photo." A tin of granola bars sits on the shelf, free for anyone who needs a snack.'},
+            {x:12,y:5,id:'lost_book',kind:'search',has:'hasBook',title:'CLASS LOCKER',take:'A library book is jammed in the back of this locker: "Bodies, Brains & Big Feelings \u2014 A Kid\u2019s Guide." Weeks overdue. You\u2019ll walk it back to the cart.',empty:'Just a forgotten gym sock back here. Yikes.'},
+            {x:4,y:9,id:'book_return',kind:'deliver',need:'hasBook',done:'bookReturned',reward:'bookmark',title:'LIBRARY CART',ask:'A rolling library cart with a sign: "Returns here! Still missing: 1 copy of \u2018Bodies, Brains & Big Feelings.\u2019"',give:'You slot the book back into the cart. The student aide lights up: "That\u2019s the one we\u2019ve been missing for weeks!" She hands you a laminated bookmark with the reading-club schedule.',doneText:'The cart\u2019s in order now \u2014 the aide gives you a thumbs-up.'} ],
+  center:[ {x:2,y:2,id:'pantry',kind:'pantry'},
+            {x:6,y:4,id:'glasses_spot',kind:'search',has:'hasGlasses',title:'UNDER THE TABLE',take:'Half-kicked under the lunch table, against a chair leg, is a pair of reading glasses with a taped arm. The case is labeled "H. CHEN." Mr. Chen will want these back.',empty:'Just a stray bingo chip down here now.'},
+            {x:11,y:5,id:'glasses_return',kind:'deliver',need:'hasGlasses',done:'glassesReturned',reward:'domino',title:'MR. CHEN\u2019S SEAT',ask:'Mr. Chen\u2019s usual seat. His folded newspaper sits unread \u2014 he mentioned he can\u2019t find his reading glasses anywhere.',give:'You hand Mr. Chen his glasses. He slips them on and beams. "Ahh \u2014 the world comes back!" He presses a hand-carved tile into your palm: "My lucky one. You keep it."',doneText:'Mr. Chen is back to his crossword, glasses perched on his nose.'} ],
+  market:[],
+  bodega:[ {x:2,y:2,id:'owner',kind:'owner',name:'Bodega Owner'},
+           {x:14,y:6,id:'cat',kind:'cat',name:'Pickles'},
+           {x:2,y:9,id:'chest',kind:'chest'} ]
 };
 
 function getProps(){ return props[state.map]||[]; }
@@ -701,11 +719,17 @@ function propDone(p){
   if(p.kind==='pantry') return !!(flags.hasTuna||flags.catFed);
   if(p.kind==='cat') return !!flags.catFed;
   if(p.kind==='chest') return !!flags.chestOpened;
+  if(p.kind==='search') return p.findReward ? inv.finds.has(p.findReward) : !!flags[p.has];
+  if(p.kind==='deliver') return !!flags[p.done];
+  if(p.kind==='owner') return !!flags.wicPosted;
   return false;
 }
 function propBubbleKind(p){
   if(p.kind==='cat') return flags.catFed?'done':'quest';
   if(p.kind==='chest') return flags.chestOpened?'done':'quest';
+  if(p.kind==='search') return propDone(p)?null:'quest';
+  if(p.kind==='deliver') return flags[p.done]?'done':(flags[p.need]?'quest':'info');
+  if(p.kind==='owner') return flags.wicPosted?'done':'quest';
   if(p.kind==='kiosk') return 'info';
   return propDone(p)?null:'info';
 }
@@ -744,6 +768,33 @@ function drawProp(px,py,p){
     ctx.fillStyle='#D85A30'; ctx.fillRect(px+8,py+8,4,4); ctx.fillStyle='#1D9E75'; ctx.fillRect(px+14,py+8,4,4);
     if(!taken){ ctx.fillStyle='#85B7EB'; ctx.fillRect(px+20,py+8,4,4); }
     ctx.fillStyle='#378ADD'; ctx.fillRect(px+8,py+16,4,4); ctx.fillStyle='#FCDE5A'; ctx.fillRect(px+14,py+16,4,4); ctx.fillStyle='#D4537E'; ctx.fillRect(px+20,py+16,4,4);
+  } else if(p.kind==='search'){
+    const dn=propDone(p);
+    ctx.fillStyle=PAL.shadow; ctx.fillRect(px+5,py+25,22,3);
+    ctx.fillStyle='#8A6A45'; ctx.fillRect(px+5,py+8,22,18);
+    ctx.fillStyle='#A9855A'; ctx.fillRect(px+5,py+8,22,3);
+    ctx.fillStyle='#5A4530'; ctx.fillRect(px+5,py+16,22,2);
+    ctx.fillStyle='#3A2C1C'; ctx.fillRect(px+13,py+12,6,2); ctx.fillRect(px+13,py+20,6,2);
+    if(dn){ ctx.fillStyle='#5DCAA5'; ctx.font='bold 10px monospace'; ctx.textAlign='center'; ctx.fillText('\u2713',px+16,py+6); ctx.textAlign='start'; }
+    else { const b=Math.sin(Date.now()/300)*1.5; ctx.fillStyle='#FCDE5A'; ctx.font='bold 12px monospace'; ctx.textAlign='center'; ctx.fillText('?',px+16,py+4+b); ctx.textAlign='start'; }
+  } else if(p.kind==='deliver'){
+    const dn=!!flags[p.done], rdy=!!flags[p.need];
+    ctx.fillStyle=PAL.shadow; ctx.fillRect(px+5,py+25,22,3);
+    ctx.fillStyle=dn?'#3B6D11':(rdy?'#0F6E56':'#3C3489'); ctx.fillRect(px+6,py+9,20,17);
+    ctx.fillStyle='rgba(255,255,255,0.18)'; ctx.fillRect(px+6,py+9,20,3);
+    ctx.fillStyle='#F1EFE8'; ctx.fillRect(px+10,py+13,12,9);
+    ctx.fillStyle='#888780'; ctx.fillRect(px+11,py+15,10,1); ctx.fillRect(px+11,py+18,7,1);
+    if(dn){ ctx.fillStyle='#5DCAA5'; ctx.font='bold 10px monospace'; ctx.textAlign='center'; ctx.fillText('\u2713',px+16,py+6); ctx.textAlign='start'; }
+    else if(rdy){ const b=Math.sin(Date.now()/300)*1.5; ctx.fillStyle='#9FE1CB'; ctx.font='bold 12px monospace'; ctx.textAlign='center'; ctx.fillText('\u2191',px+16,py+5+b); ctx.textAlign='start'; }
+  } else if(p.kind==='owner'){
+    ctx.fillStyle=PAL.shadow; ctx.beginPath(); ctx.ellipse(px+16,py+28,8,3,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#8A5A3A'; ctx.fillRect(px+11,py+5,10,9);
+    ctx.fillStyle='#2C2C2A'; ctx.fillRect(px+11,py+4,10,3);
+    ctx.fillStyle='#2C2C2A'; ctx.fillRect(px+13,py+9,2,2); ctx.fillRect(px+17,py+9,2,2);
+    ctx.fillStyle='#D85A30'; ctx.fillRect(px+9,py+14,14,12);
+    ctx.fillStyle='#E8E4D8'; ctx.fillRect(px+12,py+15,8,10);
+    ctx.fillStyle='#993C1D'; ctx.fillRect(px+9,py+23,14,3);
+    if(!flags.wicPosted){ const b=Math.sin(Date.now()/300)*1.5; ctx.fillStyle='#EF9F27'; ctx.font='bold 12px monospace'; ctx.textAlign='center'; ctx.fillText('!',px+27,py+4+b); ctx.textAlign='start'; }
   } else { /* info marker */
     if(!inv.finds.has(p.find)){
       const bob=Math.sin(Date.now()/300)*1.5;
@@ -769,18 +820,18 @@ function handleProp(p){
       showMessage('COMMUNITY PANTRY','staff','The pantry shelves are stocked with beans, rice, and canned goods, free for anyone who needs them. You already grabbed the tuna tin for Pickles.');
     } else {
       flags.hasTuna=true; addFind('pantry');
-      showMessage('COMMUNITY PANTRY','staff','Shelves of free food for the neighborhood \u2014 a volunteer waves you in: "Take what you need." Tucked among the cans is a tin of tuna. Perfect for a certain hungry cat back on the street.  [ Got: tuna tin. ]');
+      showMessage('COMMUNITY PANTRY','staff','Shelves of free food for the neighborhood \u2014 a volunteer waves you in: "Take what you need." Tucked among the cans is a tin of tuna. Perfect for a certain hungry cat over in the corner bodega.  [ Got: tuna tin. ]');
       save();
     }
   } else if(p.kind==='cat'){
     if(flags.catFed){
-      showMessage('PICKLES','staff','Pickles the bodega cat purrs and flops over for a belly rub. The loose floorboard by the stoop is still pried open where she led you.');
+      showMessage('PICKLES','staff','Pickles the bodega cat purrs and flops over for a belly rub. The loose floorboard in the back corner is still pried open where she led you.');
     } else if(flags.hasTuna){
       flags.catFed=true; flags.catRevealed=true; SFX.right(); addFind('cat_charm');
-      showMessage('PICKLES','staff','You set down the tuna. Pickles devours it, headbutts your shin in thanks, then trots to a loose floorboard by the stoop and paws at it until it pops open \u2014 there\u2019s something stashed underneath!  [ Got: Pickles\u2019 Charm. A hidden stash has been revealed nearby. ]');
+      showMessage('PICKLES','staff','You set down the tuna. Pickles devours it, headbutts your shin in thanks, then trots to a loose floorboard in the back corner of the shop and paws at it until it pops open \u2014 there\u2019s something stashed underneath!  [ Got: Pickles\u2019 Charm. A hidden stash has been revealed nearby. ]');
       save();
     } else {
-      showMessage('PICKLES','staff','A scruffy orange cat eyes you from the bodega stoop, then meows at her empty bowl \u2014 loudly, pointedly. She\u2019s hungry. Maybe there\u2019s some cat food at a neighborhood food pantry.');
+      showMessage('PICKLES','staff','A scruffy orange cat winds between your ankles in the aisle, then meows at her empty bowl \u2014 loudly, pointedly. She\u2019s hungry. Maybe there\u2019s some cat food at a neighborhood food pantry.');
     }
   } else if(p.kind==='chest'){
     if(flags.chestOpened){
@@ -790,6 +841,18 @@ function handleProp(p){
       showMessage('LOOSE FLOORBOARD','staff','Under the board: a tin of coins and a single token for the Nutrient Express, the little market shuttle. A taped note reads, "First ride\u2019s on Pickles."  [ Got: 1 bus token. Catch the bus out on the road! ]');
       updateHud(); save();
     }
+  } else if(p.kind==='search'){
+    if(propDone(p)){ showMessage(p.title||'A CLOSER LOOK','staff', p.empty); }
+    else { if(p.findReward) addFind(p.findReward); if(p.has){ flags[p.has]=true; } SFX.note(); updateHud(); save();
+      showMessage(p.title||'A CLOSER LOOK','staff', p.take + (p.findReward?'  [ \u2756 Added to your discoveries. ]':'') ); }
+  } else if(p.kind==='deliver'){
+    if(flags[p.done]){ showMessage(p.title,'staff', p.doneText||'All taken care of. Thanks again!'); }
+    else if(flags[p.need]){ flags[p.done]=true; addFind(p.reward); SFX.right(); updateHud(); save(); showMessage(p.title,'staff', p.give + '  [ \u2756 ' + (FINDS[p.reward]?FINDS[p.reward].name:'reward') + ' added. ]'); }
+    else { showMessage(p.title,'staff', p.ask); }
+  } else if(p.kind==='owner'){
+    if(!flags.wicPosted){ flags.wicPosted=true; addFind('wic_sign'); SFX.right(); updateHud(); save();
+      showMessage('BODEGA OWNER','staff','The owner wipes his hands on his apron. "New sign just came in \u2014 we take EBT and WIC now \u2014 but the front window\u2019s a mess and I can\u2019t reach the top. Give me a hand?" Together you post it where the whole block can see. When a corner store takes benefits, fresh food gets a lot closer to home.  [ \u2756 EBT/WIC sign posted. ] Oh \u2014 Pickles is prowling the back aisle if you\u2019re hunting for her.'); }
+    else { showMessage('BODEGA OWNER','staff','"Busier since we put up the EBT sign \u2014 more neighbors stopping in for real groceries." He nods toward the shelves. "Pickles is around here somewhere, holding court in the aisle."'); }
   } else if(p.kind==='kiosk'){
     openKiosk();
   }
@@ -928,15 +991,18 @@ function currentObjectives(){
   if(remaining>0) obj.push({done:false,text:'Solve '+remaining+' more case'+(remaining===1?'':'s')+' across the neighborhood'});
   else obj.push({done:true,text:'All 7 cases solved \u2014 nice work'});
   if(!flags.catFed){
-    if(!flags.hasTuna) obj.push({done:false,text:'Pickles the bodega cat is hungry \u2014 find cat food (try a food pantry)'});
-    else obj.push({done:false,text:'Bring the tuna tin to Pickles on the street'});
+    if(!flags.hasTuna) obj.push({done:false,text:'Pickles the bodega cat is hungry \u2014 she\u2019s inside the corner store; grab cat food (try a food pantry)'});
+    else obj.push({done:false,text:'Bring the tuna tin to Pickles in the corner bodega'});
   } else if(!flags.chestOpened){
-    obj.push({done:false,text:'Open the stash Pickles revealed by the stoop'});
+    obj.push({done:false,text:'Open the stash Pickles revealed in the bodega'});
   } else {
     obj.push({done:true,text:'Befriended Pickles & found her stash'});
   }
   if(inv.tickets>0) obj.push({done:false,text:'Ride the Nutrient Express \u2014 board the bus on the road'});
   else if(flags.chestOpened) obj.push({done:false,text:'Earn coins on the route, buy tokens at the kiosk'});
+  if(flags.hasBadge && !flags.badgeReturned) obj.push({done:false,text:'Return Dr. Patel\u2019s ID badge to her office'});
+  if(flags.hasBook && !flags.bookReturned) obj.push({done:false,text:'Return the overdue library book to the school cart'});
+  if(flags.hasGlasses && !flags.glassesReturned) obj.push({done:false,text:'Return the reading glasses to Mr. Chen'});
   return obj;
 }
 function updateCompanion(){
@@ -962,6 +1028,22 @@ function updateCompanion(){
     +'<div style="color:#9FE1CB;font-size:10px;letter-spacing:1px;margin-bottom:4px">OBJECTIVES</div>'
     +'<div class="phr-scroll-side">'+objs+finds+'</div>';
 }
+
+/* ---------- bodega interior + side-quest wiring ---------- */
+function buildBodegaMap(){
+  const m=[]; for(let y=0;y<ROWS;y++){const r=[];for(let x=0;x<COLS;x++){ if(y===0||y===ROWS-1||x===0||x===COLS-1)r.push('W'); else r.push('bf'); }m.push(r);}
+  m[1][2]='co'; m[1][3]='co'; m[1][4]='co';
+  for(let x=3;x<=6;x++){ m[4][x]='sh'; m[6][x]='sh'; }
+  for(let x=12;x<=16;x++){ m[3][x]='sh'; m[5][x]='sh'; m[7][x]='sh'; }
+  m[8][3]='sh'; m[8][4]='sh'; m[8][16]='sh';
+  m[ROWS-1][9]='Xb'; m[ROWS-1][10]='Xb';
+  return m;
+}
+npcs.bodega=[];
+maps.bodega=buildBodegaMap();
+EXITS.street.Db=['bodega',9,10,'up'];
+EXITS.bodega={ Xb:['street',4,3,'down'] };
+LOC_LABELS.bodega='CORNER BODEGA \u00b7 GROCERIES & MORE';
 
 /* ---------- main loop ---------- */
 let lastT=0;
