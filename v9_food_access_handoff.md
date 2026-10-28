@@ -14,7 +14,7 @@ v9 rebuilds the Harlem Health Rotation around one question: why do low-income Ha
 ## Harlem Children’s Zone (v9.1)
 
 Julia works at Harlem Children’s Zone on 125th, so HCZ’s real **Healthy Harlem** program is the strongest answer in every act:
-- **Discover:** HCZ is an enterable building on 125 St (door at x18). Ms. Andrea, a composite Healthy Harlem staffer, is the open-question interview for the `v_hcz` voice card. The Harvest table gives the `g_hcz` program card (≈50,000 lb of free produce a year, monthly Harvest markets April–November, Health Bucks, Fresh Food Box with Uptown Grand Central; source: hcz.org Healthy Harlem page).
+- **Discover:** HCZ is its real building at 35 East 125th Street, enterable from 125 St (door at x18); the arrival sign and planner site both show the address. Ms. Andrea, a composite Healthy Harlem staffer, is the open-question interview for the `v_hcz` voice card. The Harvest table gives the `g_hcz` program card (≈50,000 lb of free produce a year, monthly Harvest markets April–November, Health Bucks, Fresh Food Box with Uptown Grand Central; source: hcz.org Healthy Harlem page).
 - **Pitch:** `st_hcz` (SNAP-matched evening Harvest markets co-designed with HCZ parents) and `pa_hcz` are the top-scoring options. The best pitch scores 0.88; the best non-HCZ pitch scores 0.84. Both HCZ cards answer the tenants' rep and the budget objections in the battle, and Ms. Andrea can be called as an ally.
 - **Integrate:** the HCZ site is an anchor: fit ×1.2 and +0.15 sustainability on every component there.
 - A new field note, "Build on trusted institutions," unlocks.
@@ -23,6 +23,19 @@ Julia works at Harlem Children’s Zone on 125th, so HCZ’s real **Healthy Harl
 ## Credit
 
 `CREDIT` reads: “Inspired by and created using the research and data of Julia DePinto, MPH in Public Health Nutrition, CUNY Graduate School of Public Health & Health Policy.” It appears on the title screen, in the page footer, in the Notes tab and at the top of the impact report. Survey cards cite “J. DePinto, PUBH 698 capstone analysis.”
+
+## v9.2: On Location look and feel
+
+This version is restyled to match `on-locations` (On Location · NYC v8) so the series reads as one family.
+- **Layout:** the game fills the window. The top bar has pills for the current act (MTA-style bullet), cards, voices, notes, trust and a live score, plus buttons for Quests (J), Cards (C), Map (M), Notes (N), Sound and Reset. The side column is gone.
+- **Pop-ups:** Quests, Cards, Map and Notes open as centered pop-ups with tabs between them. Every conversation is a pop-up too, with a portrait header and speech-bubble quotes. The Community Board battle docks its pop-up at the bottom so the scene stays visible.
+- **Canvas HUD:** a NEXT UP card (top left, with segmented progress per act), a minimap (bottom right, showing objectives in pink and you in yellow), a contextual hint pill ("SPACE Interview Doña Carmen"), film-style lower thirds with a subway-mosaic accent, and full-screen act title cards with letterbox bars.
+- **Start screen:** an animated Harlem night (brownstones with water towers, NYCHA towers, a Metro-North train on the Park Ave viaduct), a marquee logo with bulbs, feature chips, the crew row, START/CONTINUE, HIGH SCORES, Julia's credit, and the line "Part of Moon's educational RPG series."
+- **Character select:** a field clipboard with 10 fellows, each with a perk. The perks are Moon (walks 15% faster), Julia (+150 per first-try analysis step), Ana (follow-ups earn 2 trust), Dre (starts with 3 trust), Kai (+75 per first-try study), Nia (+6 board confidence), Sam (+$5K pilot funding), Luz (60-second Survey Sprint), Eli (+75 per keepsake) and Grace (wrong answers are free). Your name goes on the field badge.
+- **Scoring:** the live score comes from `finalScore()`. Rows cover cards, first-try interviews, follow-ups, first-try studies, first-try analysis steps, field notes, pitch grade, board confidence, extra hearings (−100), pilot stars, residents reached, trust, keepsakes, Survey Sprint best and wrong answers (−20). Grades are S 7500 / A 6000 / B 4500 / C 3000 / D.
+- **Arcade:** launching the pilot leads to a FINAL SCORE screen where rows count up, you enter 3-letter initials, and the HIGH SCORES board updates. High scores live in `localStorage` under `hhr9_hiscores`, outside the save, so Reset never wipes them.
+- **Fonts:** fully offline (ui-monospace body, system sans for headings). The Google Fonts link is gone.
+- Dev helper `HHR.pick(id,name)` skips character select.
 
 ## Systems
 
