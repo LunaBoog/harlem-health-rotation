@@ -24,6 +24,21 @@ Julia works at Harlem Children’s Zone on 125th, so HCZ’s real **Healthy Harl
 
 `CREDIT` reads: “Inspired by and created using the research and data of Julia DePinto, MPH in Public Health Nutrition, CUNY Graduate School of Public Health & Health Policy.” It appears on the title screen, in the page footer, in the Notes tab and at the top of the impact report. Survey cards cite “J. DePinto, PUBH 698 capstone analysis.”
 
+## v9.3: Crisp rendering and a hand-built world
+
+- **Sharp at any size:** the canvas backing store is now a whole-number multiple of 640×384 at your screen's real pixel density (`fitCanvas()` / `RS`), with `ctx.setTransform(RS…)`. Art pixels land on whole device pixels, and all canvas text (HUD, battle and so on) is drawn at full resolution. Drawing code uses logical 640×384, so never use `cvs.width`/`cvs.height` there.
+- **New environment renderer** (`03a_world.js`). Each map is built in cached passes: ground textures, then buildings or walls, then furniture and props, then per-map decor (`MAP_DECOR`), then ambient occlusion. Two extra layers draw over the sprites: a canopy layer (tree crowns and lamp heads, so you walk under them) and a light layer (warm pools from lamps, shop windows, ceiling lights and window light, blended with `screen`).
+- **Street buildings** are drawn as whole composites per span:
+  - brownstones in five palettes, with cornices and dentils, sash windows with curtains and flower boxes, fire escapes on brick, and stoops with iron railings
+  - the deli with signboard, scalloped awning, stuffed display windows, an EBT poster and an OPEN neon
+  - the Older Adult Center, the glass CUNY SPH lab, and the supermarket with awning and produce windows
+  - the limestone Community Board hall with columns, arched windows and flags
+  - HCZ with colorful decals
+  - rooftops (with water towers) along the bottom edge
+- **New street props**, all solid tiles: `l` lamp, `h` hydrant, `n` litter basket, `m` mailbox, `v` news boxes, `r` bike rack, `q` bench and `z` the 125 St subway entrance with green globes. There are also manholes, storm drains and street-name signs.
+- **Interiors:** each has its own back wall (paint and wainscot, deli tile, wood paneling, kids' rainbow) with windows looking out on the skyline, posters and clocks, plus its own floor (oak planks, parquet, deli checker, big grocery tiles, linoleum, maple). Furniture has 3/4 depth. The lab gained a sofa, chairs around the map table and bookcases.
+- **NEXT UP** collapses to a one-line pill 6 seconds after the objective last changed.
+
 ## v9.2: On Location look and feel
 
 This version is restyled to match `on-locations` (On Location · NYC v8) so the series reads as one family.
